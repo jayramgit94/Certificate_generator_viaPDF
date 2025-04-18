@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Certificate Generator</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Certificate Generator</h1>
+
+      <canvas id="certificateCanvas" width="800" height="600"></canvas>
+
+      <div class="buttons">
+        <button id="prevBtn">⬅️ Previous</button>
+        <button id="nextBtn">Next ➡️</button>
+        <button id="downloadBtn">⬇️ Download Certificate</button>
+        <button id="downloadAllBtn">Generate and Download All Certificates</button>
+        <button id="downloadAllBtn2">Generate and Download All Certificates in PDF</button>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="js/script.js"></script>
+  </body>
+</html>

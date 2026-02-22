@@ -2,15 +2,29 @@
   "name": "certificate-generator",
   "version": "1.0.0",
   "description": "A simple and powerful web app to generate and download personalized certificates for multiple users using HTML Canvas and JavaScript.",
+  "keywords": [],
+  "homepage": "https://github.com/jayramgit94/Certificate_generator#readme",
+  "bugs": {
+    "url": "https://github.com/jayramgit94/Certificate_generator/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jayramgit94/Certificate_generator.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build",
+    "start": "cd server && npm start",
+    "seed": "cd server && node src/scripts/seed.js",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "test": "cd server && npm test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
@@ -23,12 +37,7 @@
     "nodemailer-sendgrid-transport": "^0.2.0",
     "pdfjs-dist": "^5.1.91"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jayramgit94/Certificate_generator.git"
-  },
-  "bugs": {
-    "url": "https://github.com/jayramgit94/Certificate_generator/issues"
-  },
-  "homepage": "https://github.com/jayramgit94/Certificate_generator#readme"
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

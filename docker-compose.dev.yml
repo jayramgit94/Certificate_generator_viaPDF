@@ -1,0 +1,22 @@
+# Development compose — only spin up MongoDB and Redis
+# Run the app locally with: npm run dev
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: certifypro-mongo-dev
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_dev_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: certifypro-redis-dev
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+
+volumes:
+  mongo_dev_data:

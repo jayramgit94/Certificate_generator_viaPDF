@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # ===== Redis =====
+  redis:
+    image: redis:7-alpine
+    container_name: certifypro-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - certifypro-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== Application =====
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: certifypro-app
+    restart: unless-stopped
+    ports:
+      - '${PORT:-5000}:5000'
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: ${MONGODB_URI:-mongodb+srv://user:pass@cluster.mongodb.net/certigen?retryWrites=true&w=majority}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_me_in_production_please}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_refresh_secret_too}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-noreply@certifypro.com}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-CertifyPro}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:5000}
+    volumes:
+      - uploads_data:/app/server/uploads
+      - logs_data:/app/server/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - certifypro-network
+
+volumes:
+  redis_data:
+  uploads_data:
+  logs_data:
+
+networks:
+  certifypro-network:
+    driver: bridge

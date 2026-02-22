@@ -1,71 +1,174 @@
-# 🎓 Certificate Generator
+# CertifyPro — Enterprise Certificate Management SaaS
 
-A simple and powerful web app to generate and download personalized certificates for multiple users using HTML Canvas and JavaScript.
-
----
-
-## 🔍 What It Does
-
-- 🖼️ Draws names on a certificate template using `<canvas>`
-- 🔁 Navigate: Previous / Next
-- 📥 Download individual certificates
-- 📦 Bulk download all certificates
+A full-stack, deployment-ready platform to design, generate, email, and verify PDF certificates at scale.
 
 ---
 
-## 📂 Project Structure
+## Features
 
-certificate-generator/ ├── index.html ├── css/style.css ├── js/script.js ├── data/users.json ├── assets/certificate.jpg └── README.md
+- **Visual Template Editor** — Drag-and-drop fields, custom backgrounds, live preview
+- **Bulk Recipient Import** — CSV, XLSX, JSON upload with validation
+- **PDF Generation Engine** — Built on pdf-lib with embedded QR codes for verification
+- **Email Automation** — Batch send certificates via SMTP with customizable email templates
+- **Public Verification** — QR/URL-based certificate authenticity checks
+- **Analytics Dashboard** — Charts for generation trends, email delivery, template usage
+- **Role-Based Access** — Super Admin, Admin, Viewer roles with JWT auth + token rotation
+- **Background Jobs** — BullMQ + Redis for async certificate/email processing
 
-yaml
-Copy
-Edit
+---
 
----  
+## Tech Stack
 
-## 📋 Sample users.json
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18, Vite 5, TailwindCSS 3.4, Recharts, Framer Motion |
+| Backend | Node.js, Express 4.18, Mongoose 8 |
+| Database | MongoDB 7, Redis 7 |
+| Auth | JWT (access + refresh tokens), bcryptjs |
+| PDF | pdf-lib, QR code embedding |
+| Email | Nodemailer, Handlebars templates |
+| Jobs | BullMQ workers |
+| DevOps | Docker, docker-compose |
 
-```json
-[
-  { "name": "Jayram Sangawat" },
-  { "name": "Ankita Mehta" },
-  { "name": "Rahul Sharma" }
-]
-🚀 Getting Started
-Clone the repo
-git clone https://github.com/jayramgit94/Certificate_generator.git
+---
 
-Add your certificate image in assets/certificate.jpg
+## Project Structure
 
-Add names in data/users.json
+```
+├── client/               # React SPA
+│   ├── src/
+│   │   ├── components/   # UI, layout, auth
+│   │   ├── pages/        # All page views
+│   │   ├── context/      # AuthContext
+│   │   └── lib/          # API client, utils
+│   └── package.json
+├── server/               # Express API
+│   ├── src/
+│   │   ├── config/       # DB, Redis, CORS, email
+│   │   ├── controllers/  # Request handlers
+│   │   ├── middleware/    # Auth, validation, upload, rate-limit
+│   │   ├── models/       # Mongoose schemas
+│   │   ├── routes/       # Express routers
+│   │   ├── services/     # Business logic
+│   │   ├── validators/   # Zod schemas
+│   │   ├── jobs/         # BullMQ workers
+│   │   ├── utils/        # Logger, errors, tokens
+│   │   └── scripts/      # Seed script
+│   └── package.json
+├── docker-compose.yml    # Full production stack
+├── docker-compose.dev.yml # Local Mongo + Redis only
+├── Dockerfile            # Multi-stage production build
+└── package.json          # Root workspace scripts
+```
 
-Open index.html in browser and start generating certificates!
+---
 
-🌐 Live Demo
-🔗 View Project on GitHub Pages
+## Quick Start
 
-⚙️ Tech Used
-HTML + Canvas API
+### Prerequisites
 
-Vanilla JavaScript
+- Node.js 18+
+- MongoDB (local or Atlas)
+- Redis (optional — jobs degrade gracefully)
 
-JSON
+### 1. Install Dependencies
 
-✨ Future Ideas
-Add fields: course name, date, signature
+```bash
+npm run install:all
+```
 
-Upload custom template
+### 2. Configure Environment
 
-Export as PDF
+```bash
+cp server/.env.example server/.env
+# Edit server/.env with your Mongo URI, JWT secrets, SMTP credentials
+```
 
-🙌 Made by
-Jayram Sangawat
-🔗 @jayramgit94
+### 3. Start Development Services (Docker)
 
-⭐ If you like it, give it a star!
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
 
-vbnet
-Copy
-Edit
+### 4. Seed the Database
 
-Let me know if you'd like a custom logo, badge, or GitHub Actions for auto-deploy.
+```bash
+npm run seed
+```
+
+Default login: `admin@certifypro.com` / `Admin@123456`
+
+### 5. Run Development Servers
+
+```bash
+npm run dev
+```
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5000
+- Health check: http://localhost:5000/api/health
+
+---
+
+## Docker Production Deployment
+
+```bash
+# Build and start entire stack
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f app
+```
+
+The production build serves the React SPA from the Express server on port 5000.
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register admin |
+| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/refresh` | Refresh token |
+| GET | `/api/auth/me` | Current user |
+| GET | `/api/templates` | List templates |
+| POST | `/api/templates` | Create template |
+| PUT | `/api/templates/:id` | Update template |
+| DELETE | `/api/templates/:id` | Delete template |
+| POST | `/api/recipients/upload` | Upload CSV/XLSX/JSON |
+| GET | `/api/recipients/batches` | List batches |
+| POST | `/api/certificates/generate` | Generate certificates |
+| GET | `/api/certificates` | List certificates |
+| GET | `/api/certificates/:id/download` | Download PDF |
+| POST | `/api/emails/send` | Batch send emails |
+| GET | `/api/emails/logs` | Email delivery logs |
+| GET | `/api/verify/:certificateId` | Public verification |
+| GET | `/api/analytics/dashboard` | Dashboard stats |
+| GET | `/api/health` | Health check |
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | 5000 | Server port |
+| `MONGO_URI` | `mongodb://localhost:27017/certifypro` | MongoDB connection |
+| `REDIS_URL` | `redis://localhost:6379` | Redis connection |
+| `JWT_SECRET` | — | Access token secret |
+| `JWT_REFRESH_SECRET` | — | Refresh token secret |
+| `SMTP_HOST` | — | SMTP server host |
+| `SMTP_PORT` | 587 | SMTP port |
+| `SMTP_USER` | — | SMTP username |
+| `SMTP_PASS` | — | SMTP password |
+| `FROM_EMAIL` | `noreply@certifypro.com` | Sender email |
+| `CLIENT_URL` | `http://localhost:5173` | Frontend URL |
+| `CORS_ORIGINS` | `http://localhost:5173` | Allowed origins |
+
+---
+
+## License
+
+ISC
+

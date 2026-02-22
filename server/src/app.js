@@ -55,24 +55,15 @@ app.use(
 // ===== API Routes =====
 app.use("/api", routes);
 
-// ===== Serve Frontend in Production =====
-if (process.env.NODE_ENV === "production") {
-  const clientDist = path.join(__dirname, "..", "..", "client", "dist");
-  app.use(express.static(clientDist));
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(clientDist, "index.html"));
+// ===== Root Endpoint =====
+app.get("/", (req, res) => {
+  res.json({
+    name: "CertiGen API",
+    version: "2.0.0",
+    description: "Enterprise Certificate Management SaaS",
+    docs: "/api/health",
   });
-} else {
-  // ===== Root Endpoint (Dev) =====
-  app.get("/", (req, res) => {
-    res.json({
-      name: "CertiGen API",
-      version: "2.0.0",
-      description: "Enterprise Certificate Management SaaS",
-      docs: "/api/health",
-    });
-  });
-}
+});
 
 // ===== 404 Handler =====
 app.use(notFoundHandler);

@@ -1,11 +1,20 @@
-import { Bell, ChevronDown, LogOut, Menu, Search, User } from "lucide-react";
+import {
+  Bell,
+  ChevronDown,
+  HelpCircle,
+  LogOut,
+  Menu,
+  Search,
+  User,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { getInitials } from "../../lib/utils";
 
-export default function Header({ onMenuToggle }) {
+export default function Header({ onMenuToggle, onTourStart }) {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -19,18 +28,18 @@ export default function Header({ onMenuToggle }) {
   }, []);
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 sticky top-0 z-30">
+    <header className="h-14 sm:h-16 bg-white border-b border-gray-200 flex items-center justify-between px-3 sm:px-6 sticky top-0 z-30">
       {/* Left side */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <button
           onClick={onMenuToggle}
-          className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+          className="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors active:scale-95"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        {/* Search bar */}
-        <div className="hidden sm:flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2 w-80 border border-gray-200 focus-within:border-primary-300 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
+        {/* Search bar — desktop */}
+        <div className="hidden sm:flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2 w-64 md:w-80 border border-gray-200 focus-within:border-primary-300 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
           <Search className="w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -41,12 +50,20 @@ export default function Header({ onMenuToggle }) {
             ⌘K
           </kbd>
         </div>
+
+        {/* Search icon — mobile */}
+        <button
+          onClick={() => setSearchOpen(!searchOpen)}
+          className="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+        >
+          <Search className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Right side */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1 sm:gap-3">
         {/* Notifications */}
-        <button className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors">
+        <button className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors active:scale-95">
           <Bell className="w-5 h-5" />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger-500 rounded-full ring-2 ring-white" />
         </button>
@@ -55,7 +72,7 @@ export default function Header({ onMenuToggle }) {
         <div ref={dropdownRef} className="relative">
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 sm:gap-3 px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-colors active:scale-[0.98]"
           >
             <div className="w-8 h-8 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm">
               {getInitials(user?.name)}
@@ -88,6 +105,18 @@ export default function Header({ onMenuToggle }) {
                 <User className="w-4 h-4" />
                 Profile
               </button>
+              {onTourStart && (
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    onTourStart();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Take a Tour
+                </button>
+              )}
               <div className="border-t border-gray-100 mt-1 pt-1">
                 <button
                   onClick={() => {
@@ -104,6 +133,21 @@ export default function Header({ onMenuToggle }) {
           )}
         </div>
       </div>
+
+      {/* Mobile search bar — expandable */}
+      {searchOpen && (
+        <div className="absolute left-0 right-0 top-14 sm:hidden bg-white border-b border-gray-200 px-3 py-2 animate-slide-down z-20">
+          <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200 focus-within:border-primary-300 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="bg-transparent text-sm text-gray-700 placeholder:text-gray-400 outline-none w-full"
+              autoFocus
+            />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

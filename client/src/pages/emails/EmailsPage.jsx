@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   CheckCircle,
   Clock,
@@ -113,14 +114,19 @@ export default function EmailsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-display">
             Email Management
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">
             Send certificates and track delivery
           </p>
         </div>
@@ -166,8 +172,8 @@ export default function EmailsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+        <div className="relative flex-1 min-w-0 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -177,7 +183,7 @@ export default function EmailsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="input pl-9"
+            className="input pl-9 w-full"
           />
         </div>
         <Select
@@ -193,7 +199,7 @@ export default function EmailsPage() {
             { label: "Failed", value: "failed" },
             { label: "Pending", value: "pending" },
           ]}
-          className="w-36"
+          className="w-full sm:w-36"
         />
       </div>
 
@@ -212,7 +218,7 @@ export default function EmailsPage() {
         />
       ) : (
         <>
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden hidden sm:block">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -295,6 +301,33 @@ export default function EmailsPage() {
               </table>
             </div>
           </Card>
+
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-3">
+            {logs.map((log) => (
+              <Card key={log._id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{log.recipientName}</p>
+                    <p className="text-xs text-gray-400 truncate">{log.recipientEmail}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {statusIcon(log.status)}
+                    <Badge variant={log.status === "delivered" || log.status === "sent" ? "success" : log.status === "failed" ? "danger" : "warning"}>{log.status}</Badge>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2 truncate">{log.subject}</p>
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-xs text-gray-400">{formatDate(log.sentAt || log.createdAt)}</span>
+                  {(log.status === "failed" || log.status === "bounced") && (
+                    <button onClick={() => retryMutation.mutate(log._id)} className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
+                      <RefreshCw className="w-3.5 h-3.5" />Retry
+                    </button>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
           <Pagination
             currentPage={pagination.page}
             totalPages={pagination.totalPages}
@@ -362,6 +395,6 @@ export default function EmailsPage() {
           </div>
         </form>
       </Modal>
-    </div>
+    </motion.div>
   );
 }

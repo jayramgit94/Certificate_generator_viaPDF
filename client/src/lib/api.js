@@ -2,6 +2,22 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
+// Derive the server origin from VITE_API_URL for static file URLs (/uploads/...)
+// e.g. "https://my-server.onrender.com/api" → "https://my-server.onrender.com"
+const SERVER_ORIGIN = API_BASE.startsWith("http")
+  ? API_BASE.replace(/\/api\/?$/, "")
+  : "";
+
+/**
+ * Convert a relative /uploads/... path to an absolute URL in production.
+ * In dev the Vite proxy handles it, so we return the path as-is.
+ */
+export function getUploadUrl(relativePath) {
+  if (!relativePath) return "";
+  if (relativePath.startsWith("http")) return relativePath; // already absolute
+  return `${SERVER_ORIGIN}${relativePath}`;
+}
+
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 30000,

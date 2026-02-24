@@ -1,14 +1,17 @@
 const multer = require("multer");
+const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const config = require("../config");
 const AppError = require("../utils/AppError");
 
-// Storage configuration
+// Storage configuration — auto-creates the target directory if missing
 const createStorage = (destination) => {
   return multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, path.join(__dirname, "..", "..", "uploads", destination));
+      const dir = path.join(__dirname, "..", "..", "uploads", destination);
+      fs.mkdirSync(dir, { recursive: true }); // ensure dir exists
+      cb(null, dir);
     },
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname);

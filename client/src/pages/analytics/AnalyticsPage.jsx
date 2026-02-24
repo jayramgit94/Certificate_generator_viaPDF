@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { Award, Mail, TrendingUp, Users } from "lucide-react";
 import {
   Bar,
@@ -103,20 +104,25 @@ export default function AnalyticsPage() {
     totalCerts > 0 ? ((verifiedCerts / totalCerts) * 100).toFixed(1) : 0;
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-display">
             Analytics
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">
             Comprehensive insights and reporting
           </p>
         </div>
       </div>
 
       {/* Summary row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         {[
           {
             label: "Total Generated",
@@ -144,15 +150,15 @@ export default function AnalyticsPage() {
           },
         ].map((s) => (
           <Card key={s.label}>
-            <CardContent className="p-5 flex items-center gap-4">
+            <CardContent className="p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
               <div
-                className={`w-12 h-12 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center shadow-lg`}
+                className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${s.color} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
               >
-                <s.icon className="w-6 h-6 text-white" />
+                <s.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                <p className="text-sm text-gray-500">{s.label}</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">{s.value}</p>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">{s.label}</p>
               </div>
             </CardContent>
           </Card>
@@ -160,7 +166,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Monthly trends */}
         <Card>
           <CardHeader>
@@ -171,7 +177,7 @@ export default function AnalyticsPage() {
               Certificates generated per month
             </p>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-60 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -215,7 +221,7 @@ export default function AnalyticsPage() {
               Distribution overview
             </p>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-60 sm:h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -248,7 +254,7 @@ export default function AnalyticsPage() {
               Distribution by certificate status
             </p>
           </CardHeader>
-          <CardContent className="h-72">
+          <CardContent className="h-56 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={templateUsage} layout="vertical">
                 <CartesianGrid
@@ -285,6 +291,6 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </motion.div>
   );
 }

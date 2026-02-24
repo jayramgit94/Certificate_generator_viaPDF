@@ -17,7 +17,7 @@ import Button from "../../components/ui/Button";
 import Card, { CardContent, CardHeader } from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
 import { PageLoader } from "../../components/ui/Spinner";
-import api from "../../lib/api";
+import api, { getUploadUrl } from "../../lib/api";
 
 export default function TemplateEditorPage() {
   const { id } = useParams();
@@ -413,7 +413,7 @@ export default function TemplateEditorPage() {
                 <input {...getInputProps()} />
                 {template.backgroundImage ? (
                   <img
-                    src={template.backgroundImage}
+                    src={getUploadUrl(template.backgroundImage)}
                     alt="Background"
                     className="w-full h-full object-contain"
                   />

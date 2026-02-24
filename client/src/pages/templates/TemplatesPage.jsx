@@ -19,7 +19,7 @@ import Input from "../../components/ui/Input";
 import Modal from "../../components/ui/Modal";
 import Pagination from "../../components/ui/Pagination";
 import { PageLoader } from "../../components/ui/Spinner";
-import api from "../../lib/api";
+import api, { getUploadUrl } from "../../lib/api";
 import { formatDate, truncate } from "../../lib/utils";
 
 export default function TemplatesPage() {
@@ -163,7 +163,7 @@ export default function TemplatesPage() {
                 <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 relative flex items-center justify-center">
                   {t.backgroundImage ? (
                     <img
-                      src={t.backgroundImage}
+                      src={getUploadUrl(t.backgroundImage)}
                       alt={t.name}
                       className="w-full h-full object-cover"
                     />

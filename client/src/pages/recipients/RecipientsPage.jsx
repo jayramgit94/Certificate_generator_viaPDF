@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   CheckCircle,
   Edit2,
@@ -153,14 +154,19 @@ export default function RecipientsPage() {
   const pagination = data?.pagination || { page: 1, totalPages: 1 };
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 font-display">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-display">
             Recipients
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">
             Upload and manage recipient batches
           </p>
         </div>
@@ -202,96 +208,44 @@ export default function RecipientsPage() {
         />
       ) : (
         <>
-          <Card className="overflow-hidden">
+          {/* Desktop table */}
+          <Card className="overflow-hidden hidden sm:block">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="text-left border-b border-gray-100 bg-gray-50/50">
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Batch Name
-                    </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Total
-                    </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Valid
-                    </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Invalid
-                    </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Uploaded
-                    </th>
-                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Batch Name</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Valid</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Invalid</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Uploaded</th>
+                    <th className="px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {batches.map((batch) => (
-                    <tr
-                      key={batch._id}
-                      className="hover:bg-gray-50/50 transition-colors"
-                    >
+                    <tr key={batch._id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center">
                             <FileSpreadsheet className="w-4 h-4 text-primary-600" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {batch.batchName || batch.originalFileName}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {batch.source}
-                            </p>
+                            <p className="text-sm font-medium text-gray-900">{batch.batchName || batch.originalFileName}</p>
+                            <p className="text-xs text-gray-400">{batch.source}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {formatNumber(batch.summary?.total || 0)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-success-600 font-medium">
-                          {batch.summary?.valid || 0}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-danger-600 font-medium">
-                          {batch.summary?.invalid || 0}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge
-                          variant={
-                            batch.status === "active" ? "success" : "warning"
-                          }
-                        >
-                          {batch.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {formatDate(batch.createdAt)}
-                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{formatNumber(batch.summary?.total || 0)}</td>
+                      <td className="px-6 py-4"><span className="text-sm text-success-600 font-medium">{batch.summary?.valid || 0}</span></td>
+                      <td className="px-6 py-4"><span className="text-sm text-danger-600 font-medium">{batch.summary?.invalid || 0}</span></td>
+                      <td className="px-6 py-4"><Badge variant={batch.status === "active" ? "success" : "warning"}>{batch.status}</Badge></td>
+                      <td className="px-6 py-4 text-sm text-gray-500">{formatDate(batch.createdAt)}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => fetchAndViewBatch(batch)}
-                            className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
-                            title="View"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteModal(batch)}
-                            className="p-1.5 text-gray-400 hover:text-danger-600 rounded-lg hover:bg-danger-50 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <button onClick={() => fetchAndViewBatch(batch)} className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-colors" title="View"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => setDeleteModal(batch)} className="p-1.5 text-gray-400 hover:text-danger-600 rounded-lg hover:bg-danger-50 transition-colors" title="Delete"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
@@ -300,6 +254,47 @@ export default function RecipientsPage() {
               </table>
             </div>
           </Card>
+
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-3">
+            {batches.map((batch) => (
+              <Card key={batch._id} className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileSpreadsheet className="w-4 h-4 text-primary-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{batch.batchName || batch.originalFileName}</p>
+                      <p className="text-xs text-gray-400">{batch.source}</p>
+                    </div>
+                  </div>
+                  <Badge variant={batch.status === "active" ? "success" : "warning"}>{batch.status}</Badge>
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-gray-50 rounded-lg py-2">
+                    <p className="text-sm font-bold text-gray-900">{formatNumber(batch.summary?.total || 0)}</p>
+                    <p className="text-[10px] text-gray-500">Total</p>
+                  </div>
+                  <div className="bg-success-50 rounded-lg py-2">
+                    <p className="text-sm font-bold text-success-700">{batch.summary?.valid || 0}</p>
+                    <p className="text-[10px] text-gray-500">Valid</p>
+                  </div>
+                  <div className="bg-danger-50 rounded-lg py-2">
+                    <p className="text-sm font-bold text-danger-600">{batch.summary?.invalid || 0}</p>
+                    <p className="text-[10px] text-gray-500">Invalid</p>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-xs text-gray-400">{formatDate(batch.createdAt)}</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => fetchAndViewBatch(batch)} className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"><Eye className="w-3.5 h-3.5" />View</button>
+                    <button onClick={() => setDeleteModal(batch)} className="flex items-center gap-1.5 text-xs font-medium text-danger-600 bg-danger-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"><Trash2 className="w-3.5 h-3.5" />Delete</button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
 
           <Pagination
             currentPage={pagination.page}
@@ -512,6 +507,6 @@ export default function RecipientsPage() {
           </Button>
         </div>
       </Modal>
-    </div>
+    </motion.div>
   );
 }

@@ -1,27 +1,33 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 
 // Layout
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import DashboardLayout from "./components/layout/DashboardLayout";
+import { PageLoader } from "./components/ui/Spinner";
 
-// Auth pages
+// Auth pages (eager — needed immediately)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 
-// Dashboard pages
-import AnalyticsPage from "./pages/analytics/AnalyticsPage";
-import CertificatesPage from "./pages/certificates/CertificatesPage";
-import DashboardPage from "./pages/dashboard/DashboardPage";
-import EmailsPage from "./pages/emails/EmailsPage";
-import RecipientsPage from "./pages/recipients/RecipientsPage";
-import SettingsPage from "./pages/settings/SettingsPage";
-import TemplateEditorPage from "./pages/templates/TemplateEditorPage";
-import TemplatesPage from "./pages/templates/TemplatesPage";
+// Dashboard pages (lazy — loaded on demand)
+const AnalyticsPage = lazy(() => import("./pages/analytics/AnalyticsPage"));
+const CertificatesPage = lazy(() => import("./pages/certificates/CertificatesPage"));
+const DashboardPage = lazy(() => import("./pages/dashboard/DashboardPage"));
+const EmailsPage = lazy(() => import("./pages/emails/EmailsPage"));
+const RecipientsPage = lazy(() => import("./pages/recipients/RecipientsPage"));
+const SettingsPage = lazy(() => import("./pages/settings/SettingsPage"));
+const TemplateEditorPage = lazy(() => import("./pages/templates/TemplateEditorPage"));
+const TemplatesPage = lazy(() => import("./pages/templates/TemplatesPage"));
 
 // Public pages
-import NotFoundPage from "./pages/NotFoundPage";
-import VerifyPage from "./pages/verify/VerifyPage";
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const VerifyPage = lazy(() => import("./pages/verify/VerifyPage"));
+
+function SuspenseWrapper({ children }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
 
 export default function App() {
   const { isAuthenticated } = useAuth();
@@ -45,8 +51,8 @@ export default function App() {
           )
         }
       />
-      <Route path="/verify" element={<VerifyPage />} />
-      <Route path="/verify/:certId" element={<VerifyPage />} />
+      <Route path="/verify" element={<SuspenseWrapper><VerifyPage /></SuspenseWrapper>} />
+      <Route path="/verify/:certId" element={<SuspenseWrapper><VerifyPage /></SuspenseWrapper>} />
 
       {/* Protected routes */}
       <Route
@@ -56,20 +62,20 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/templates" element={<TemplatesPage />} />
-        <Route path="/templates/new" element={<TemplateEditorPage />} />
-        <Route path="/templates/:id/edit" element={<TemplateEditorPage />} />
-        <Route path="/recipients" element={<RecipientsPage />} />
-        <Route path="/certificates" element={<CertificatesPage />} />
-        <Route path="/emails" element={<EmailsPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/dashboard" element={<SuspenseWrapper><DashboardPage /></SuspenseWrapper>} />
+        <Route path="/templates" element={<SuspenseWrapper><TemplatesPage /></SuspenseWrapper>} />
+        <Route path="/templates/new" element={<SuspenseWrapper><TemplateEditorPage /></SuspenseWrapper>} />
+        <Route path="/templates/:id/edit" element={<SuspenseWrapper><TemplateEditorPage /></SuspenseWrapper>} />
+        <Route path="/recipients" element={<SuspenseWrapper><RecipientsPage /></SuspenseWrapper>} />
+        <Route path="/certificates" element={<SuspenseWrapper><CertificatesPage /></SuspenseWrapper>} />
+        <Route path="/emails" element={<SuspenseWrapper><EmailsPage /></SuspenseWrapper>} />
+        <Route path="/analytics" element={<SuspenseWrapper><AnalyticsPage /></SuspenseWrapper>} />
+        <Route path="/settings" element={<SuspenseWrapper><SettingsPage /></SuspenseWrapper>} />
       </Route>
 
       {/* Redirects */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<NotFoundPage />} />
+      <Route path="*" element={<SuspenseWrapper><NotFoundPage /></SuspenseWrapper>} />
     </Routes>
   );
 }

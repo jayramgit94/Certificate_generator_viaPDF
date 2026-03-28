@@ -3,6 +3,26 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --cp-bg: #131315;
+    --cp-bg-deep: #07080d;
+    --cp-surface: #1c1b1d;
+    --cp-surface-soft: #201f22;
+    --cp-text: #e5e1e4;
+    --cp-text-muted: #cbc3d7;
+    --cp-text-dim: #958ea0;
+    --cp-primary: #d0bcff;
+    --cp-primary-strong: #a078ff;
+    --cp-secondary: #4edea3;
+    --cp-secondary-soft: #6ffbbe;
+    --cp-danger-soft: #ffdad6;
+    --cp-danger-bg: #93000a;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   * {
     @apply border-gray-200;
   }
@@ -15,6 +35,21 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
   /* Smooth scrolling on iOS */
   * {
     -webkit-overflow-scrolling: touch;
@@ -98,9 +133,143 @@
   .touch-target {
     @apply min-h-[44px] min-w-[44px];
   }
+
+  .dashboard-shell {
+    color: #111827;
+  }
+
+  .dashboard-dark {
+    color: var(--cp-text);
+  }
+
+  .dashboard-dark .bg-white {
+    background-color: #171922 !important;
+  }
+
+  .dashboard-dark .bg-gray-50 {
+    background-color: #11131a !important;
+  }
+
+  .dashboard-dark .bg-gray-50\/50 {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+  }
+
+  .dashboard-dark .bg-gray-100 {
+    background-color: #202331 !important;
+  }
+
+  .dashboard-dark .bg-primary-50 {
+    background-color: rgba(160, 120, 255, 0.14) !important;
+  }
+
+  .dashboard-dark .text-gray-900 {
+    color: #f2f0f3 !important;
+  }
+
+  .dashboard-dark .text-gray-800 {
+    color: #e8e4ed !important;
+  }
+
+  .dashboard-dark .text-gray-700 {
+    color: #d4ccdf !important;
+  }
+
+  .dashboard-dark .text-gray-600 {
+    color: #b8afc5 !important;
+  }
+
+  .dashboard-dark .text-gray-500,
+  .dashboard-dark .text-gray-400 {
+    color: #9a93ab !important;
+  }
+
+  .dashboard-dark .text-primary-700 {
+    color: #dccbff !important;
+  }
+
+  .dashboard-dark .text-primary-600 {
+    color: #c8adff !important;
+  }
+
+  .dashboard-dark .border-gray-100,
+  .dashboard-dark .border-gray-200,
+  .dashboard-dark .border-gray-300 {
+    border-color: #2b2f3d !important;
+  }
+
+  .dashboard-dark .hover\:bg-gray-50:hover,
+  .dashboard-dark .hover\:bg-gray-100:hover {
+    background-color: #202331 !important;
+  }
+
+  .dashboard-dark .hover\:text-gray-900:hover,
+  .dashboard-dark .hover\:text-gray-700:hover,
+  .dashboard-dark .group:hover .group-hover\:text-gray-600 {
+    color: #f2f0f3 !important;
+  }
+
+  .dashboard-dark .btn-secondary {
+    background-color: #1d202c;
+    border-color: #31364a;
+    color: #e5e1e4;
+  }
+
+  .dashboard-dark .btn-ghost {
+    color: #b8afc5;
+  }
+
+  .dashboard-dark .input {
+    border-color: #31364a;
+    background-color: #151822;
+    color: #f2f0f3;
+  }
+
+  .dashboard-dark .input::placeholder {
+    color: #8d88a1;
+  }
+
+  .dashboard-dark .card {
+    background-color: #171922;
+    border-color: #2b2f3d;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+  }
+
+  .dashboard-dark .shadow-lg,
+  .dashboard-dark .shadow-xl,
+  .dashboard-dark .shadow-2xl {
+    box-shadow: 0 20px 44px rgba(0, 0, 0, 0.44) !important;
+  }
 }
 
 @layer utilities {
+  .gpu {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .will-transform {
+    will-change: transform;
+  }
+
+  .will-opacity {
+    will-change: opacity;
+  }
+
+  .soft-noise {
+    position: relative;
+  }
+
+  .soft-noise::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    opacity: 0.04;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.35) 0.6px, transparent 0.6px);
+    background-size: 2px 2px;
+    mix-blend-mode: soft-light;
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: #d1d5db transparent;

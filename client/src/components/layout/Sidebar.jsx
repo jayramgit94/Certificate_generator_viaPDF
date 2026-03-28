@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils";
 
 const navigation = [
@@ -47,7 +47,14 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
     <>
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-gray-100">
-        <div className="flex items-center gap-3">
+        <Link
+          to="/"
+          onClick={() => {
+            if (mobileOpen) onMobileClose();
+          }}
+          className="flex items-center gap-3 rounded-xl pr-2 transition-opacity hover:opacity-90"
+          title="Go to landing page"
+        >
           <div className="w-9 h-9 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
             <Shield className="w-5 h-5 text-white" />
           </div>
@@ -65,7 +72,7 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
               </p>
             </motion.div>
           )}
-        </div>
+        </Link>
         {mobileOpen && (
           <button
             onClick={onMobileClose}

@@ -2,16 +2,25 @@ import {
   Bell,
   ChevronDown,
   HelpCircle,
+  Home,
   LogOut,
   Menu,
+  Moon,
   Search,
+  Sun,
   User,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getInitials } from "../../lib/utils";
 
-export default function Header({ onMenuToggle, onTourStart }) {
+export default function Header({
+  onMenuToggle,
+  onTourStart,
+  isDarkMode = false,
+  onToggleTheme,
+}) {
   const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -62,6 +71,31 @@ export default function Header({ onMenuToggle, onTourStart }) {
 
       {/* Right side */}
       <div className="flex items-center gap-1 sm:gap-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1.5 p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors active:scale-95"
+          title="Go to landing page"
+          aria-label="Go to landing page"
+        >
+          <Home className="w-5 h-5" />
+          <span className="hidden lg:inline text-xs font-semibold">Home</span>
+        </Link>
+
+        {onToggleTheme && (
+          <button
+            onClick={onToggleTheme}
+            className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors active:scale-95"
+            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {isDarkMode ? (
+              <Sun className="w-5 h-5" />
+            ) : (
+              <Moon className="w-5 h-5" />
+            )}
+          </button>
+        )}
+
         {/* Notifications */}
         <button className="relative p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors active:scale-95">
           <Bell className="w-5 h-5" />

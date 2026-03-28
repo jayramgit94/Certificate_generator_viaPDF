@@ -32,3 +32,14 @@ export function CardFooter({ className, children }) {
     </div>
   );
 }
+
+export function CardSkeleton({ className, lines = 3 }) {
+  return (
+    <div className={cn("card p-5 space-y-3", className)}>
+      <div className="skeleton h-5 w-1/2" />
+      {Array.from({ length: lines }).map((_, index) => (
+        <div key={index} className="skeleton h-3 w-full" />
+      ))}
+    </div>
+  );
+}

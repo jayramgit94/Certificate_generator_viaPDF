@@ -1,6 +1,7 @@
 const Recipient = require("../models/Recipient");
 const ActivityLog = require("../models/ActivityLog");
 const fileService = require("./file.service");
+const quotaService = require("./quota.service");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 
@@ -46,10 +47,20 @@ class RecipientService {
     }
 
     // Parse file
-    const { records, sourceType } = await fileService.parseFile(
-      file.path,
-      file.originalname,
+    const { records, sourceType, mappingInsights } = await fileService.parseFile(
+      file,
     );
+
+    const estimatedBytes = Buffer.byteLength(
+      JSON.stringify({
+        batchName,
+        sourceType,
+        sourceFile: file.originalname,
+        records,
+      }),
+      "utf8",
+    );
+    await quotaService.ensureMongoStorageWithinLimit(estimatedBytes);
 
     // Create batch
     const batch = await Recipient.create({
@@ -58,6 +69,7 @@ class RecipientService {
       sourceFile: file.originalname,
       sourceType,
       records,
+      importInsights: mappingInsights || { headers: [], warnings: [], warningCount: 0 },
       status: "validated",
     });
 

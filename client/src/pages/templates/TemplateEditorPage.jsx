@@ -13,11 +13,17 @@ import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
+import Alert from "../../components/ui/Alert";
 import Button from "../../components/ui/Button";
 import Card, { CardContent, CardHeader } from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
-import { PageLoader } from "../../components/ui/Spinner";
-import api, { getUploadUrl } from "../../lib/api";
+import { InlineLoader, PageLoader } from "../../components/ui/Spinner";
+import api, { getApiErrorInfo, getUploadUrl } from "../../lib/api";
+import {
+  getUploadLimitText,
+  UPLOAD_LIMITS,
+  validateUploadFile,
+} from "../../lib/uploadLimits";
 
 export default function TemplateEditorPage() {
   const { id } = useParams();
@@ -36,6 +42,8 @@ export default function TemplateEditorPage() {
   });
   const [activeTab, setActiveTab] = useState("design");
   const [selectedField, setSelectedField] = useState(null);
+  const [pageError, setPageError] = useState(null);
+  const backgroundPolicy = UPLOAD_LIMITS.backgroundImage;
 
   const { data: fetchedTemplate, isLoading } = useQuery({
     queryKey: ["template", id],
@@ -101,16 +109,15 @@ export default function TemplateEditorPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["templates"] });
       queryClient.invalidateQueries({ queryKey: ["template", id] });
+      setPageError(null);
       toast.success("Template saved!");
     },
     onError: (err) => {
       // Don't double-toast if we already showed the "create from templates page" message
       if (err.message?.includes("file upload")) return;
-      toast.error(
-        err.response?.data?.error?.message ||
-          err.response?.data?.message ||
-          "Failed to save template",
-      );
+      const errorInfo = getApiErrorInfo(err, "Failed to save template");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
     },
   });
 
@@ -123,6 +130,7 @@ export default function TemplateEditorPage() {
       setTemplate((prev) => ({ ...prev, status: updated.status }));
       queryClient.invalidateQueries({ queryKey: ["templates"] });
       queryClient.invalidateQueries({ queryKey: ["template", id] });
+      setPageError(null);
       toast.success(
         updated.status === "active"
           ? "Template activated!"
@@ -130,11 +138,9 @@ export default function TemplateEditorPage() {
       );
     },
     onError: (err) => {
-      toast.error(
-        err.response?.data?.error?.message ||
-          err.response?.data?.message ||
-          "Failed to update status",
-      );
+      const errorInfo = getApiErrorInfo(err, "Failed to update status");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
     },
   });
 
@@ -149,31 +155,51 @@ export default function TemplateEditorPage() {
     onSuccess: ({ data }) => {
       setTemplate((prev) => ({ ...prev, backgroundImage: data.data?.url }));
       queryClient.invalidateQueries({ queryKey: ["template", id] });
+      setPageError(null);
       toast.success("Background uploaded!");
     },
     onError: (err) => {
-      toast.error(
-        err.response?.data?.error?.message || "Failed to upload background",
-      );
+      const errorInfo = getApiErrorInfo(err, "Failed to upload background");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
     },
   });
 
   const onDrop = useCallback(
     (acceptedFiles) => {
-      if (acceptedFiles[0] && !isNew) {
-        uploadBgMutation.mutate(acceptedFiles[0]);
-      } else {
+      if (!acceptedFiles[0]) return;
+
+      if (isNew) {
         toast.error("Save the template first before uploading a background");
+        return;
       }
+
+      const validation = validateUploadFile(acceptedFiles[0], backgroundPolicy);
+      if (!validation.ok) {
+        toast.error(`${validation.reason} ${validation.nextStep}`);
+        return;
+      }
+
+      uploadBgMutation.mutate(acceptedFiles[0]);
     },
-    [isNew],
+    [backgroundPolicy, isNew],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { "image/*": [".png", ".jpg", ".jpeg"] },
+    onDropRejected: (rejections) => {
+      const firstError = rejections?.[0]?.errors?.[0]?.message;
+      if (firstError) {
+        toast.error(firstError);
+      }
+    },
+    accept: {
+      "image/png": [".png"],
+      "image/jpeg": [".jpg", ".jpeg"],
+      "image/webp": [".webp"],
+    },
     maxFiles: 1,
-    maxSize: 5 * 1024 * 1024,
+    maxSize: backgroundPolicy.maxSizeMb * 1024 * 1024,
   });
 
   const addTextField = () => {
@@ -243,28 +269,38 @@ export default function TemplateEditorPage() {
         <div className="flex items-center gap-3">
           <Button
             variant="secondary"
-            disabled={isNew || statusMutation.isPending}
+            loading={statusMutation.isPending}
+            loadingText="Updating..."
+            disabled={isNew}
             onClick={() => {
               const newStatus =
                 template.status === "active" ? "draft" : "active";
               statusMutation.mutate(newStatus);
             }}
           >
-            {statusMutation.isPending
-              ? "Updating..."
-              : template.status === "active"
-                ? "Set Draft"
-                : "Activate"}
+            {template.status === "active" ? "Set Draft" : "Activate"}
           </Button>
           <Button
             onClick={() => saveMutation.mutate(template)}
-            disabled={saveMutation.isPending}
+            loading={saveMutation.isPending}
+            loadingText="Saving..."
           >
             <Save className="w-4 h-4" />
-            {saveMutation.isPending ? "Saving..." : "Save"}
+            Save
           </Button>
         </div>
       </div>
+
+      {pageError && (
+        <Alert
+          type="error"
+          title={pageError.whatFailed}
+          reason={pageError.reason}
+          nextStep={pageError.nextStep}
+          details={pageError.details}
+          technicalDetails={pageError.technicalMessage}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left panel — Properties */}
@@ -423,7 +459,9 @@ export default function TemplateEditorPage() {
                     <p className="text-sm font-medium">
                       Drop a background image here
                     </p>
-                    <p className="text-xs mt-1">PNG, JPG up to 5MB</p>
+                    <p className="text-xs mt-1">
+                      {getUploadLimitText(backgroundPolicy)}
+                    </p>
                   </div>
                 )}
 
@@ -455,6 +493,12 @@ export default function TemplateEditorPage() {
                     {field.placeholder || field.label}
                   </div>
                 ))}
+
+                {uploadBgMutation.isPending && (
+                  <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex items-center justify-center">
+                    <InlineLoader label="Uploading background..." />
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

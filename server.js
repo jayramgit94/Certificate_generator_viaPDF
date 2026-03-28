@@ -6,6 +6,11 @@ const mailjet = require("node-mailjet");
 const app = express();
 const port = process.env.PORT || 3000;
 
+const MAILJET_API_KEY = process.env.MAILJET_API_KEY;
+const MAILJET_API_SECRET = process.env.MAILJET_API_SECRET;
+const EMAIL_FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || "noreply@example.com";
+const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || "Certificate Service";
+
 // Setup CORS (optional but good for frontend)
 app.use(cors());
 
@@ -17,13 +22,21 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Configure Mailjet
-const mailjetClient = mailjet.apiConnect(
-  "470a1bc478310ddccf17d4e69afa3054",
-  "4fdb685a68a0664d3305567054684003"
-);
+const mailjetClient =
+  MAILJET_API_KEY && MAILJET_API_SECRET
+    ? mailjet.apiConnect(MAILJET_API_KEY, MAILJET_API_SECRET)
+    : null;
 
 // Endpoint to send email
 app.post("/send-email", upload.single("certificate"), async (req, res) => {
+  if (!mailjetClient) {
+    return res.status(500).json({
+      success: false,
+      message:
+        "MAILJET_API_KEY and MAILJET_API_SECRET must be set in environment variables",
+    });
+  }
+
   const { name, email } = req.body;
   const certificateBuffer = req.file.buffer;
 
@@ -32,8 +45,8 @@ app.post("/send-email", upload.single("certificate"), async (req, res) => {
       Messages: [
         {
           From: {
-            Email: "sangawatjayram@gmail.com",
-            Name: "Jayram Sangawat",
+            Email: EMAIL_FROM_ADDRESS,
+            Name: EMAIL_FROM_NAME,
           },
           To: [
             {

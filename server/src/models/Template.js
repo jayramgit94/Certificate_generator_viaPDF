@@ -92,9 +92,17 @@ const customFontSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    fileId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
     file: {
       type: String,
       required: true,
+    },
+    mimeType: {
+      type: String,
+      default: null,
     },
   },
   { _id: false },
@@ -102,7 +110,12 @@ const customFontSchema = new mongoose.Schema(
 
 const signatureSchema = new mongoose.Schema(
   {
+    fileId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
     file: String,
+    mimeType: { type: String, default: null },
     page: { type: Number, default: 1 },
     x: { type: Number, default: 50 },
     y: { type: Number, default: 80 },
@@ -148,6 +161,18 @@ const templateSchema = new mongoose.Schema(
       type: String,
       required: [true, "Template file is required"],
     },
+    templateFileId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
+    templateFileName: {
+      type: String,
+      default: null,
+    },
+    templateMimeType: {
+      type: String,
+      default: null,
+    },
     pdfPages: {
       type: Number,
       default: 1,
@@ -171,6 +196,10 @@ const templateSchema = new mongoose.Schema(
     },
     backgroundImage: {
       type: String,
+      default: null,
+    },
+    backgroundImageFileId: {
+      type: mongoose.Schema.Types.ObjectId,
       default: null,
     },
     isDefault: {

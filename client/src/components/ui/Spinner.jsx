@@ -16,6 +16,15 @@ export default function Spinner({ className, size = "default" }) {
   );
 }
 
+export function InlineLoader({ label = "Loading...", className }) {
+  return (
+    <div className={cn("inline-flex items-center gap-2 text-sm text-primary-700", className)}>
+      <Spinner size="sm" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
 export function PageLoader() {
   return (
     <div className="space-y-6 animate-fade-in">
@@ -64,7 +73,14 @@ export function TableLoader({ rows = 5, cols = 4 }) {
       {[...Array(rows)].map((_, i) => (
         <div key={i} className="flex gap-4 items-center py-3">
           {[...Array(cols)].map((_, j) => (
-            <div key={j} className={cn("skeleton h-4", j === 0 ? "w-32" : "w-20", "flex-shrink-0")} />
+            <div
+              key={j}
+              className={cn(
+                "skeleton h-4",
+                j === 0 ? "w-32" : "w-20",
+                "flex-shrink-0",
+              )}
+            />
           ))}
         </div>
       ))}

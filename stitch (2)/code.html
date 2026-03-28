@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CertifyPro | The Nocturnal Architect of Digital Credentials</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&amp;family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "inverse-on-surface": "#313032",
+                        "on-primary": "#3c0091",
+                        "tertiary-fixed-dim": "#ffb869",
+                        "on-error": "#690005",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-low": "#1c1b1d",
+                        "on-secondary-container": "#00311f",
+                        "surface-bright": "#39393b",
+                        "on-tertiary-fixed-variant": "#673d00",
+                        "on-primary-fixed": "#23005c",
+                        "surface": "#131315",
+                        "on-surface": "#e5e1e4",
+                        "primary": "#d0bcff",
+                        "on-tertiary-fixed": "#2c1700",
+                        "error": "#ffb4ab",
+                        "error-container": "#93000a",
+                        "on-tertiary": "#482900",
+                        "on-secondary-fixed-variant": "#005236",
+                        "on-surface-variant": "#cbc3d7",
+                        "surface-variant": "#353437",
+                        "on-background": "#e5e1e4",
+                        "inverse-surface": "#e5e1e4",
+                        "outline-variant": "#494454",
+                        "on-primary-container": "#340080",
+                        "on-secondary": "#003824",
+                        "secondary": "#4edea3",
+                        "on-secondary-fixed": "#002113",
+                        "surface-container-highest": "#353437",
+                        "surface-dim": "#131315",
+                        "surface-container-high": "#2a2a2c",
+                        "secondary-fixed-dim": "#4edea3",
+                        "surface-container-lowest": "#0e0e10",
+                        "outline": "#958ea0",
+                        "primary-container": "#a078ff",
+                        "surface-container": "#201f22",
+                        "on-tertiary-container": "#3f2300",
+                        "primary-fixed": "#e9ddff",
+                        "surface-tint": "#d0bcff",
+                        "on-primary-fixed-variant": "#5516be",
+                        "secondary-fixed": "#6ffbbe",
+                        "secondary-container": "#00a572",
+                        "inverse-primary": "#6d3bd7",
+                        "tertiary-fixed": "#ffdcbb",
+                        "background": "#131315",
+                        "tertiary": "#ffb869",
+                        "tertiary-container": "#ca801e",
+                        "primary-fixed-dim": "#d0bcff"
+                    },
+                    fontFamily: {
+                        "headline": ["Newsreader", "serif"],
+                        "body": ["Manrope", "sans-serif"],
+                        "label": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .glass-card {
+            background: rgba(32, 31, 34, 0.4);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-orb {
+            position: absolute;
+            filter: blur(120px);
+            z-index: 0;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        body {
+            background-color: #131315;
+            color: #e5e1e4;
+            overflow-x: hidden;
+            font-family: 'Manrope', sans-serif;
+        }
+        .serif-italic { font-family: 'Newsreader'; font-style: italic; }
+        .text-huge { font-size: clamp(3rem, 10vw, 8rem); line-height: 0.9; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-8 py-3 bg-slate-950/60 backdrop-blur-xl rounded-full mt-4 mx-auto max-w-5xl border border-white/10 shadow-[0_20px_50px_rgba(139,92,246,0.1)]">
+<div class="text-2xl font-black tracking-tighter text-slate-50 dark:text-slate-50 font-['Newsreader']">
+            CertifyPro
+        </div>
+<div class="hidden md:flex space-x-8 items-center">
+<a class="text-violet-400 font-bold border-b-2 border-violet-500/50 pb-1 font-['Newsreader'] text-lg tracking-tight" href="#">Product</a>
+<a class="text-slate-400 font-medium hover:text-slate-100 transition-colors font-['Newsreader'] text-lg tracking-tight hover:bg-white/5 hover:scale-[1.02] transition-all" href="#">Solutions</a>
+<a class="text-slate-400 font-medium hover:text-slate-100 transition-colors font-['Newsreader'] text-lg tracking-tight hover:bg-white/5 hover:scale-[1.02] transition-all" href="#">Customers</a>
+<a class="text-slate-400 font-medium hover:text-slate-100 transition-colors font-['Newsreader'] text-lg tracking-tight hover:bg-white/5 hover:scale-[1.02] transition-all" href="#">Pricing</a>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-full font-bold hover:scale-[1.02] transition-all active:scale-95 duration-200 ease-out">
+            Get Started
+        </button>
+</nav>
+<main class="relative">
+<!-- Glow Orbs -->
+<div class="glow-orb top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary-container rounded-full"></div>
+<div class="glow-orb top-[20%] right-[-5%] w-[400px] h-[400px] bg-secondary-container rounded-full"></div>
+<!-- HERO SECTION -->
+<section class="min-h-screen flex flex-col items-center justify-center pt-32 px-6 relative overflow-hidden">
+<div class="max-w-7xl w-full text-center z-10">
+<h1 class="font-headline text-huge font-extrabold tracking-tighter mb-8 text-on-surface">
+                    Digital Proof <br/> <span class="serif-italic font-light text-primary">Redefined.</span>
+</h1>
+<p class="max-w-2xl mx-auto text-on-surface-variant text-lg md:text-xl font-body mb-12 leading-relaxed">
+                    The infrastructure for high-integrity credentials. Secure, verifiable, and designed for the modern architectural standard of trust.
+                </p>
+<div class="flex flex-col md:flex-row gap-6 justify-center items-center">
+<button class="px-10 py-5 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold rounded-full text-lg shadow-xl hover:scale-105 transition-transform">
+                        Issue Your First Credential
+                    </button>
+<button class="px-10 py-5 bg-surface-container-high/40 backdrop-blur-md border border-white/10 text-on-surface font-bold rounded-full text-lg hover:bg-surface-container-highest transition-colors">
+                        View Demo
+                    </button>
+</div>
+</div>
+<!-- Floating Certificate Animation Proxy -->
+<div class="mt-20 relative w-full max-w-4xl h-[400px] flex items-center justify-center">
+<div class="glass-card w-[350px] h-[450px] rounded-xl p-8 absolute transform -rotate-12 translate-x-[-150px] translate-y-20 z-0">
+<div class="w-12 h-12 rounded-full bg-secondary mb-6 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary">verified</span>
+</div>
+<div class="h-4 w-3/4 bg-white/10 rounded mb-4"></div>
+<div class="h-4 w-1/2 bg-white/10 rounded mb-10"></div>
+<div class="h-32 w-full bg-white/5 rounded-lg border border-white/5"></div>
+</div>
+<div class="glass-card w-[400px] h-[520px] rounded-xl p-10 z-20 shadow-2xl flex flex-col justify-between border-primary/20">
+<div>
+<div class="flex justify-between items-start mb-12">
+<span class="font-headline text-2xl italic">CertifyPro</span>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</div>
+<h2 class="font-headline text-3xl mb-2">Professional Architect</h2>
+<p class="text-on-surface-variant text-sm uppercase tracking-widest">Verified Accreditation</p>
+</div>
+<div class="flex justify-between items-end">
+<div class="space-y-2">
+<div class="h-2 w-24 bg-white/10 rounded"></div>
+<div class="h-2 w-32 bg-white/10 rounded"></div>
+</div>
+<div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center p-2">
+<img alt="QR Code" class="w-full h-full opacity-80" data-alt="High-contrast minimalist QR code for digital verification on a clean white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSiyhbTmalid7wtI-b86-Gpu8bMb01CvJF5DBTywf5akD0GCFGNeLr00sZkdmeDKP9FSTc9Yzdp3ipo_z2CMq03_0XMIyHPCQ163eH1KdAmyV_IZu_6EwRrUyw6mHYX7PBAmyKO8dNIOVhHhqYJGwaasJ47WxfFgqlRM0bOTEm0ptQGevSHwDEPZu4vaw51vr4Cde4ADhEZ6OKG9r_sGq6xzSjoFBqqj-0HCXUMN2-7Hii8OCNj_zvMxlDJ9GXHWVquwBXVH5pRvM"/>
+</div>
+</div>
+</div>
+<div class="glass-card w-[350px] h-[450px] rounded-xl p-8 absolute transform rotate-12 translate-x-[150px] translate-y-10 z-0">
+<div class="w-12 h-12 rounded-full bg-primary mb-6 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary">shield</span>
+</div>
+<div class="h-4 w-1/2 bg-white/10 rounded mb-4"></div>
+<div class="h-4 w-2/3 bg-white/10 rounded mb-10"></div>
+<div class="h-32 w-full bg-white/5 rounded-lg border border-white/5"></div>
+</div>
+</div>
+</section>
+<!-- CREDENTIAL FLOW -->
+<section class="py-32 px-6 bg-surface-container-lowest">
+<div class="max-w-7xl mx-auto">
+<div class="mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8">
+<h2 class="font-headline text-5xl md:text-7xl font-bold max-w-xl">
+                        A seamless path <br/><span class="serif-italic text-secondary">to authority.</span>
+</h2>
+<p class="text-on-surface-variant max-w-sm font-body text-lg">
+                        Our automated pipeline handles the complexity of cryptographic signing so you can focus on the design.
+                    </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 relative">
+<!-- Connector Line (Desktop Only) -->
+<div class="hidden md:block absolute top-12 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent z-0"></div>
+<div class="relative z-10 group">
+<div class="w-24 h-24 rounded-2xl bg-surface flex items-center justify-center mb-8 border border-white/10 group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-primary text-4xl">database</span>
+</div>
+<h3 class="font-headline text-2xl mb-4 italic">01. Ingest Data</h3>
+<p class="text-on-surface-variant text-sm font-body leading-relaxed">Connect your CRM or upload secure datasets directly into our encrypted cloud infrastructure.</p>
+</div>
+<div class="relative z-10 group">
+<div class="w-24 h-24 rounded-2xl bg-surface flex items-center justify-center mb-8 border border-white/10 group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-primary text-4xl">edit_square</span>
+</div>
+<h3 class="font-headline text-2xl mb-4 italic">02. Design</h3>
+<p class="text-on-surface-variant text-sm font-body leading-relaxed">Use our editorial canvas to create stunning, high-fidelity certificate templates that reflect your brand.</p>
+</div>
+<div class="relative z-10 group">
+<div class="w-24 h-24 rounded-2xl bg-surface flex items-center justify-center mb-8 border border-white/10 group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-primary text-4xl">send</span>
+</div>
+<h3 class="font-headline text-2xl mb-4 italic">03. Issue</h3>
+<p class="text-on-surface-variant text-sm font-body leading-relaxed">Batch issue thousands of unique credentials with a single click, delivered via secure email or direct-to-wallet.</p>
+</div>
+<div class="relative z-10 group">
+<div class="w-24 h-24 rounded-2xl bg-surface flex items-center justify-center mb-8 border border-white/10 group-hover:border-primary transition-colors">
+<span class="material-symbols-outlined text-primary text-4xl">task_alt</span>
+</div>
+<h3 class="font-headline text-2xl mb-4 italic">04. Verify</h3>
+<p class="text-on-surface-variant text-sm font-body leading-relaxed">Publicly verifiable links and QR codes ensure that every credential remains tamper-proof and authentic.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- CORE CAPABILITIES (Bento Grid) -->
+<section class="py-32 px-6">
+<div class="max-w-7xl mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-6 md:grid-rows-2 gap-6 min-h-[700px]">
+<div class="md:col-span-3 md:row-span-2 glass-card rounded-3xl p-12 flex flex-col justify-between overflow-hidden relative group">
+<div class="relative z-10">
+<span class="material-symbols-outlined text-secondary text-5xl mb-8">rocket_launch</span>
+<h3 class="font-headline text-4xl font-bold mb-6">Scale without <br/>friction.</h3>
+<p class="text-on-surface-variant text-lg max-w-sm mb-12">Built on robust infrastructure that handles peaks of millions of issuance requests per hour.</p>
+</div>
+<div class="absolute bottom-0 right-0 w-3/4 translate-y-12 translate-x-12 opacity-40 group-hover:translate-y-6 transition-transform">
+<img alt="Abstract waves" class="rounded-tl-3xl" data-alt="Sophisticated 3D abstract fluid waves in dark charcoal and violet tones with smooth metallic reflections" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjjqQyDw8zZWaj0qIy0z257D9vJYeCvmeQMz61_xGUizou1NNZNqJJcLgdrOJVZNbZyAh5o4wheDzhIu891epEQ17LopBTKT15d--ZcbQ0X0lGhauDQDqUcnKtGqSp-JDo5L4djWMGQ9p45o6GxIisQCbWZQJnQ1TOLQVeR8VzUo8iiUc1jMhiBvfbMxHPWn3Zd-DqXoQ1r03dgEJMfzqCs2lIJs5__B6UQvU5KgaX2A7L1lfuP4Isfmst-94Jb8BtMvikMbID8BQ"/>
+</div>
+</div>
+<div class="md:col-span-3 glass-card rounded-3xl p-10 flex flex-col md:flex-row gap-8 items-center">
+<div class="flex-1">
+<span class="material-symbols-outlined text-primary text-3xl mb-4">api</span>
+<h3 class="font-headline text-2xl font-bold mb-2 italic">Developer-First API</h3>
+<p class="text-on-surface-variant text-sm">Integrate directly into your existing stack with our world-class SDKs and documentation.</p>
+</div>
+<div class="w-32 h-32 bg-surface-container-highest rounded-xl border border-white/5 flex items-center justify-center">
+<span class="material-symbols-outlined text-6xl text-on-surface-variant">code</span>
+</div>
+</div>
+<div class="md:col-span-3 glass-card rounded-3xl p-10 flex items-center justify-between">
+<div class="flex-1">
+<span class="material-symbols-outlined text-secondary text-3xl mb-4">fingerprint</span>
+<h3 class="font-headline text-2xl font-bold mb-2 italic">Public ID Verification</h3>
+<p class="text-on-surface-variant text-sm">Every user gets a permanent, verified profile page to showcase their achievements to the world.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- USE CASES -->
+<section class="py-32 px-6 bg-surface-container-low">
+<div class="max-w-7xl mx-auto space-y-40">
+<!-- Use Case 01 -->
+<div class="flex flex-col md:flex-row items-center gap-20">
+<div class="flex-1 space-y-8">
+<span class="text-sm font-body uppercase tracking-[0.3em] text-primary">Higher Education</span>
+<h2 class="font-headline text-6xl md:text-8xl font-bold leading-none">Modern <br/>Colleges.</h2>
+<p class="text-on-surface-variant text-xl leading-relaxed font-body">Replace paper degrees with cryptographically secure digital twins that students can share instantly on social platforms and professional networks.</p>
+<ul class="space-y-4 font-body">
+<li class="flex items-center gap-4"><span class="material-symbols-outlined text-secondary">check_circle</span> Instant alumni verification</li>
+<li class="flex items-center gap-4"><span class="material-symbols-outlined text-secondary">check_circle</span> Anti-fraud blockchain logging</li>
+<li class="flex items-center gap-4"><span class="material-symbols-outlined text-secondary">check_circle</span> Custom university branding</li>
+</ul>
+</div>
+<div class="flex-1 relative">
+<div class="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
+<img alt="Campus Library" class="w-full h-full object-cover grayscale contrast-125" data-alt="Cinematic low-angle shot of a grand university library with gothic architecture and dramatic evening light coming through stained glass" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjYIItLLYpds-DyufQ7_G5YEf1lUT8UB4sIj490WIUiDRloP01uUh21R9By4Vb76_Ur5QoCMn_Z_gIxwOeUwg9Fe7SO14B010FiY-FYnjMbDY9lJBARCzV-A8ErCzeMn4QbBh-9FZIFo-GjB0nNid6HZcp2-VqdublZl_ieuqgSEmf9q8kkwBkRxEfyAPsdWRhW4lKTUfeJMOh_OhDyB5oQ2p5GMQlOwcpNEfxmA708jTfiDB4M536F3XHsegD5u3EYw3g-Duzu6c"/>
+</div>
+<div class="absolute -bottom-10 -left-10 glass-card p-6 rounded-2xl w-64 shadow-2xl border-secondary/20">
+<p class="font-headline italic text-lg mb-2">"Transformed our graduation process overnight."</p>
+<span class="text-xs uppercase tracking-widest text-on-surface-variant">Director of Registrar</span>
+</div>
+</div>
+</div>
+<!-- Use Case 02 -->
+<div class="flex flex-col md:flex-row-reverse items-center gap-20">
+<div class="flex-1 space-y-8">
+<span class="text-sm font-body uppercase tracking-[0.3em] text-primary">Enterprise HR</span>
+<h2 class="font-headline text-6xl md:text-8xl font-bold leading-none">Global <br/>Teams.</h2>
+<p class="text-on-surface-variant text-xl leading-relaxed font-body">Upskill your workforce and issue internal certifications that travel with employees, boosting engagement and retention.</p>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-6 bg-surface rounded-2xl border border-white/5">
+<p class="text-3xl font-headline font-bold text-secondary">94%</p>
+<p class="text-xs text-on-surface-variant uppercase tracking-tighter">Increase in Completion</p>
+</div>
+<div class="p-6 bg-surface rounded-2xl border border-white/5">
+<p class="text-3xl font-headline font-bold text-secondary">0.5s</p>
+<p class="text-xs text-on-surface-variant uppercase tracking-tighter">Verification Speed</p>
+</div>
+</div>
+</div>
+<div class="flex-1 relative">
+<div class="aspect-[4/5] rounded-3xl overflow-hidden shadow-2xl">
+<img alt="Modern Office" class="w-full h-full object-cover grayscale brightness-75" data-alt="Hyper-modern minimalist corporate office interior with glass walls, soft shadows, and a clean monochrome aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnuJtvpW8rskvkxMyP0wKSyXc391edqd3aFFbLBMKHp5q-3qEK1VdVDAdRPwYKGSAUIiG5Di4qZESarGtBuNSeqRTyUmSelDXV4WkB4p94w5BE-MUey0zkQ4_TOW1PxTkxY6ZZ1_7J7kSjJ5-y0JRXHTasgBHPeLM3HyYJiEg0qWStJWxIAQxOQPdD6kEVfB36erW6-10k_WQA7Sipit4bJM0GKE6ckzPanlJ-QS1tZGs67iBzm7ra-Z9AcAAQswYfrQxFOMSoNEo"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- PRICING/PLANS -->
+<section class="py-32 px-6">
+<div class="max-w-7xl mx-auto text-center mb-20">
+<h2 class="font-headline text-5xl md:text-7xl font-bold mb-6">Infrastructure <span class="serif-italic text-primary">Pricing.</span></h2>
+<p class="text-on-surface-variant max-w-xl mx-auto font-body">Predictable costs for unpredictable growth. No hidden fees, just pure performance.</p>
+</div>
+<div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+<!-- Starter -->
+<div class="glass-card p-10 rounded-3xl flex flex-col border-white/5 hover:border-white/20 transition-all group">
+<h3 class="font-headline text-2xl italic mb-4">Starter</h3>
+<p class="text-4xl font-bold mb-8">$199 <span class="text-lg text-on-surface-variant font-normal">/mo</span></p>
+<ul class="space-y-4 mb-12 flex-1 font-body text-sm text-on-surface-variant">
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> Up to 1,000 Certificates</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> Standard Templates</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> Public Verification Page</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> Email Support</li>
+</ul>
+<button class="w-full py-4 rounded-xl border border-white/10 group-hover:bg-white/5 transition-colors font-bold uppercase tracking-widest text-xs">Get Started</button>
+</div>
+<!-- Enterprise -->
+<div class="glass-card p-10 rounded-3xl flex flex-col border-primary/40 relative transform scale-105 z-10 shadow-2xl">
+<div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-on-primary text-[10px] font-black uppercase tracking-[0.2em] rounded-full">Most Scaled</div>
+<h3 class="font-headline text-2xl italic mb-4">Enterprise</h3>
+<p class="text-4xl font-bold mb-8">$899 <span class="text-lg text-on-surface-variant font-normal">/mo</span></p>
+<ul class="space-y-4 mb-12 flex-1 font-body text-sm">
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-lg">check</span> Unlimited Issuance</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-lg">check</span> White-label Branding</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-lg">check</span> Full API Access</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-lg">check</span> 24/7 Priority Support</li>
+</ul>
+<button class="w-full py-4 rounded-xl bg-primary text-on-primary font-bold uppercase tracking-widest text-xs">Choose Enterprise</button>
+</div>
+<!-- Custom -->
+<div class="glass-card p-10 rounded-3xl flex flex-col border-white/5 hover:border-white/20 transition-all group">
+<h3 class="font-headline text-2xl italic mb-4">Custom</h3>
+<p class="text-4xl font-bold mb-8">Quote</p>
+<ul class="space-y-4 mb-12 flex-1 font-body text-sm text-on-surface-variant">
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> Custom Blockchain Logic</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> Dedicated Infrastructure</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> On-Premise Deployment</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-primary text-lg">check</span> SLA Guarantees</li>
+</ul>
+<button class="w-full py-4 rounded-xl border border-white/10 group-hover:bg-white/5 transition-colors font-bold uppercase tracking-widest text-xs">Contact Sales</button>
+</div>
+</div>
+</section>
+<!-- FINAL CTA -->
+<section class="py-40 px-6 relative overflow-hidden">
+<div class="glow-orb bottom-[-20%] left-[30%] w-[600px] h-[600px] bg-primary rounded-full"></div>
+<div class="max-w-5xl mx-auto text-center relative z-10">
+<h2 class="font-headline text-6xl md:text-9xl font-bold mb-12 leading-tight">Secure your legacy <br/><span class="serif-italic text-secondary">today.</span></h2>
+<button class="px-16 py-8 bg-on-surface text-surface font-black rounded-full text-2xl hover:scale-110 transition-transform active:scale-95">
+                    Build with CertifyPro
+                </button>
+<p class="mt-12 text-on-surface-variant uppercase tracking-[0.4em] text-sm">Join 2,500+ institutions worldwide.</p>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full px-12 md:px-24 border-t border-white/5 bg-[#131315] full-width pt-24 pb-12">
+<div class="max-w-7xl mx-auto">
+<div class="text-5xl font-black text-slate-50 mb-8 font-['Newsreader']">CertifyPro</div>
+<div class="flex flex-col md:flex-row justify-between items-start gap-12 mb-20">
+<div class="max-w-md">
+<h4 class="font-['Newsreader'] italic text-4xl text-slate-50 mb-4">Architecture for Trust.</h4>
+<p class="font-['Manrope'] text-sm uppercase tracking-widest text-slate-500">Building the next generation of cryptographic proofs for elite organizations.</p>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-12">
+<div class="flex flex-col gap-4">
+<span class="font-['Manrope'] text-xs font-bold uppercase tracking-widest text-primary">Platform</span>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Product</a>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">API docs</a>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Templates</a>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-['Manrope'] text-xs font-bold uppercase tracking-widest text-primary">Company</span>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">About</a>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Blog</a>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Careers</a>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-['Manrope'] text-xs font-bold uppercase tracking-widest text-primary">Legal</span>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Privacy Policy</a>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Terms of Service</a>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Security</a>
+</div>
+<div class="flex flex-col gap-4">
+<span class="font-['Manrope'] text-xs font-bold uppercase tracking-widest text-primary">Contact</span>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Support</a>
+<a class="text-slate-500 hover:text-violet-300 transition-colors" href="#">Status</a>
+</div>
+</div>
+</div>
+<div class="flex flex-col md:flex-row justify-between items-center pt-12 border-t border-white/5 gap-6">
+<p class="font-['Manrope'] text-sm uppercase tracking-widest text-slate-500">© 2024 CertifyPro. Built for the Nocturnal Architect.</p>
+<div class="flex gap-8">
+<span class="material-symbols-outlined text-slate-500 hover:text-primary transition-colors cursor-pointer">language</span>
+<span class="material-symbols-outlined text-slate-500 hover:text-primary transition-colors cursor-pointer">share</span>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

@@ -6,6 +6,7 @@ const Template = require("../models/Template");
 const Recipient = require("../models/Recipient");
 const ActivityLog = require("../models/ActivityLog");
 const qrcodeService = require("./qrcode.service");
+const gridfsService = require("./gridfs.service");
 const { generateCertificateId } = require("../utils/idGenerator");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
@@ -154,26 +155,30 @@ class CertificateService {
 
     // Load or create PDF document
     let pdfDoc;
+    const templateFile = await this._resolveTemplateFile(template);
+    const templateExt = path.extname(templateFile.filename || "").toLowerCase();
+    const templateMime = (templateFile.contentType || "").toLowerCase();
 
     if (template.fileType === "image") {
       // Template is an image — create a new PDF and embed the image as background
-      if (!template.pdfFile || !fs.existsSync(template.pdfFile)) {
-        throw new AppError("Template image file not found on disk", 404);
-      }
-      const imageBytes = fs.readFileSync(template.pdfFile);
+      const imageBytes = templateFile.buffer;
       pdfDoc = await PDFDocument.create();
 
-      const ext = path.extname(template.pdfFile).toLowerCase();
       let embeddedImage;
-      if (ext === ".png" || ext === ".webp") {
+      if (templateMime === "image/png" || templateExt === ".png") {
         embeddedImage = await pdfDoc.embedPng(imageBytes);
-      } else {
-        // .jpg / .jpeg
+      } else if (
+        templateMime === "image/jpeg" ||
+        templateExt === ".jpg" ||
+        templateExt === ".jpeg"
+      ) {
         embeddedImage = await pdfDoc.embedJpg(imageBytes);
+      } else {
+        throw AppError.badRequest(
+          "Unsupported template image format. Use PNG or JPEG.",
+        );
       }
 
-      const imgWidth = embeddedImage.width;
-      const imgHeight = embeddedImage.height;
       // Use landscape A4 as default, scale image to fill
       const pageWidth = 842;
       const pageHeight = 595;
@@ -186,11 +191,7 @@ class CertificateService {
       });
     } else {
       // Template is a PDF — load it directly
-      if (!template.pdfFile || !fs.existsSync(template.pdfFile)) {
-        throw new AppError("Template PDF file not found on disk", 404);
-      }
-      const templatePdfBytes = fs.readFileSync(template.pdfFile);
-      pdfDoc = await PDFDocument.load(templatePdfBytes);
+      pdfDoc = await PDFDocument.load(templateFile.buffer);
     }
 
     // Embed standard fonts
@@ -210,8 +211,8 @@ class CertificateService {
     // Load custom fonts
     for (const customFont of template.customFonts || []) {
       try {
-        if (fs.existsSync(customFont.file)) {
-          const fontBytes = fs.readFileSync(customFont.file);
+        const fontBytes = await this._resolveAssetBuffer(customFont);
+        if (fontBytes) {
           fontMap[customFont.name] = await pdfDoc.embedFont(fontBytes);
         }
       } catch (err) {
@@ -354,10 +355,23 @@ class CertificateService {
     }
 
     // Embed signature
-    if (template.signature?.file && fs.existsSync(template.signature.file)) {
+    if (template.signature?.file || template.signature?.fileId) {
       try {
-        const sigBytes = fs.readFileSync(template.signature.file);
-        const sigImage = await pdfDoc.embedPng(sigBytes);
+        const sigBytes = await this._resolveAssetBuffer(template.signature);
+        if (!sigBytes) {
+          throw new Error("Signature file not found");
+        }
+
+        const signatureMime = (template.signature?.mimeType || "").toLowerCase();
+        const signatureExt = path
+          .extname(template.signature?.file || "")
+          .toLowerCase();
+        const sigImage =
+          signatureMime === "image/jpeg" ||
+          signatureExt === ".jpg" ||
+          signatureExt === ".jpeg"
+            ? await pdfDoc.embedJpg(sigBytes)
+            : await pdfDoc.embedPng(sigBytes);
         const pageIndex = (template.signature.page || 1) - 1;
 
         if (pageIndex < pdfDoc.getPageCount()) {
@@ -384,19 +398,18 @@ class CertificateService {
 
     // Save PDF
     const pdfBytes = await pdfDoc.save();
-    const outputDir = path.join(
-      __dirname,
-      "..",
-      "..",
-      "uploads",
-      "certificates",
-    );
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const outputPath = path.join(outputDir, `${certId}.pdf`);
-    fs.writeFileSync(outputPath, pdfBytes);
+    const pdfFileId = await gridfsService.uploadBuffer({
+      buffer: Buffer.from(pdfBytes),
+      filename: `${certId}.pdf`,
+      contentType: "application/pdf",
+      metadata: {
+        adminId: adminId.toString(),
+        templateId: template._id.toString(),
+        certificateId: certId,
+        assetType: "certificate",
+      },
+    });
+    const pdfUrl = gridfsService.buildFileUrl(pdfFileId);
 
     // Create certificate record in DB
     const certificate = await Certificate.create({
@@ -409,7 +422,8 @@ class CertificateService {
       eventName: recipientData.event || "",
       issueDate: recipientData.date ? new Date(recipientData.date) : new Date(),
       customData: recipientData.customFields || {},
-      pdfPath: outputPath,
+      pdfPath: pdfUrl,
+      pdfFileId,
       pdfSize: pdfBytes.length,
       qrCodeData: verificationUrl,
       status: "generated",
@@ -483,6 +497,23 @@ class CertificateService {
       throw AppError.notFound("Certificate");
     }
 
+    if (certificate.pdfFileId) {
+      const { buffer } = await gridfsService.downloadToBuffer(certificate.pdfFileId);
+      return {
+        buffer,
+        filename: `${certificate.certificateId}.pdf`,
+      };
+    }
+
+    const legacyFileId = gridfsService.extractFileIdFromUrl(certificate.pdfPath);
+    if (legacyFileId) {
+      const { buffer } = await gridfsService.downloadToBuffer(legacyFileId);
+      return {
+        buffer,
+        filename: `${certificate.certificateId}.pdf`,
+      };
+    }
+
     if (!certificate.pdfPath || !fs.existsSync(certificate.pdfPath)) {
       throw AppError.notFound("Certificate PDF file");
     }
@@ -491,6 +522,60 @@ class CertificateService {
       buffer: fs.readFileSync(certificate.pdfPath),
       filename: `${certificate.certificateId}.pdf`,
     };
+  }
+
+  async _resolveTemplateFile(template) {
+    if (template.templateFileId) {
+      const { buffer, file } = await gridfsService.downloadToBuffer(
+        template.templateFileId,
+      );
+      return {
+        buffer,
+        filename: file.filename || template.templateFileName || "template-file",
+        contentType: file.contentType || template.templateMimeType || null,
+      };
+    }
+
+    const fileIdFromUrl = gridfsService.extractFileIdFromUrl(template.pdfFile);
+    if (fileIdFromUrl) {
+      const { buffer, file } = await gridfsService.downloadToBuffer(fileIdFromUrl);
+      return {
+        buffer,
+        filename: file.filename || template.templateFileName || "template-file",
+        contentType: file.contentType || template.templateMimeType || null,
+      };
+    }
+
+    if (template.pdfFile && fs.existsSync(template.pdfFile)) {
+      return {
+        buffer: fs.readFileSync(template.pdfFile),
+        filename: template.templateFileName || path.basename(template.pdfFile),
+        contentType: template.templateMimeType || null,
+      };
+    }
+
+    throw AppError.notFound("Template file");
+  }
+
+  async _resolveAssetBuffer(asset) {
+    if (!asset) return null;
+
+    if (asset.fileId) {
+      const { buffer } = await gridfsService.downloadToBuffer(asset.fileId);
+      return buffer;
+    }
+
+    const fileIdFromUrl = gridfsService.extractFileIdFromUrl(asset.file);
+    if (fileIdFromUrl) {
+      const { buffer } = await gridfsService.downloadToBuffer(fileIdFromUrl);
+      return buffer;
+    }
+
+    if (asset.file && fs.existsSync(asset.file)) {
+      return fs.readFileSync(asset.file);
+    }
+
+    return null;
   }
 
   /**

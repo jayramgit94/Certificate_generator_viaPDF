@@ -9,8 +9,9 @@ import {
   Send,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import Alert from "../../components/ui/Alert";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Card, { CardContent } from "../../components/ui/Card";
@@ -19,8 +20,8 @@ import Input from "../../components/ui/Input";
 import Modal from "../../components/ui/Modal";
 import Pagination from "../../components/ui/Pagination";
 import Select from "../../components/ui/Select";
-import { PageLoader } from "../../components/ui/Spinner";
-import api from "../../lib/api";
+import Spinner, { PageLoader } from "../../components/ui/Spinner";
+import api, { getApiErrorInfo } from "../../lib/api";
 import { formatDate, formatNumber } from "../../lib/utils";
 
 export default function EmailsPage() {
@@ -35,6 +36,8 @@ export default function EmailsPage() {
     emailTemplateId: "",
     subject: "Your Certificate is Ready!",
   });
+  const [pageError, setPageError] = useState(null);
+  const [retryTargetId, setRetryTargetId] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["email-logs", page, search, statusFilter],
@@ -56,42 +59,78 @@ export default function EmailsPage() {
     queryFn: () => api.get("/emails/templates").then((r) => r.data.data || []),
   });
 
-  const { data: certBatches } = useQuery({
+  const { data: certBatches = [] } = useQuery({
     queryKey: ["batches-for-email"],
     queryFn: () =>
       api
         .get("/recipients", { params: { limit: 100 } })
-        .then((r) => r.data.data?.batches || []),
+        .then((r) => {
+          const payload = r.data?.data;
+          if (Array.isArray(payload)) return payload;
+          if (Array.isArray(payload?.batches)) return payload.batches;
+          if (Array.isArray(payload?.items)) return payload.items;
+          return [];
+        }),
   });
+
+  const recipientBatchOptions = useMemo(
+    () =>
+      (certBatches || [])
+        .map((batch) => {
+          const id = batch?._id || batch?.id || "";
+          if (!id) return null;
+
+          const displayName =
+            batch.batchName ||
+            batch.sourceFile ||
+            batch.originalFileName ||
+            "Untitled batch";
+
+          return {
+            label: `${displayName} (${batch?.summary?.valid || 0})`,
+            value: id,
+          };
+        })
+        .filter(Boolean),
+    [certBatches],
+  );
 
   const sendMutation = useMutation({
     mutationFn: (data) => api.post("/emails/send-by-batch", data),
+    onMutate: () => {
+      setPageError(null);
+    },
     onSuccess: ({ data }) => {
       queryClient.invalidateQueries({ queryKey: ["email-logs"] });
       setSendModal(false);
+      setPageError(null);
       toast.success(data.message || `Batch email initiated!`);
     },
     onError: (err) => {
-      toast.error(
-        err.response?.data?.error?.message ||
-          err.response?.data?.message ||
-          "Failed to send emails",
-      );
+      const errorInfo = getApiErrorInfo(err, "Failed to send emails");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
     },
   });
 
   const retryMutation = useMutation({
     mutationFn: (id) => api.post("/emails/retry", { emailLogIds: [id] }),
+    onMutate: (id) => {
+      setRetryTargetId(id);
+      setPageError(null);
+    },
     onSuccess: ({ data }) => {
       queryClient.invalidateQueries({ queryKey: ["email-logs"] });
+      setPageError(null);
       toast.success(data.message || "Email retry initiated");
     },
     onError: (err) => {
-      toast.error(
-        err.response?.data?.error?.message ||
-          err.response?.data?.message ||
-          "Failed to retry email",
-      );
+      const errorInfo = getApiErrorInfo(err, "Failed to retry email");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
+    },
+    onSettled: () => {
+      setRetryTargetId(null);
     },
   });
 
@@ -203,6 +242,17 @@ export default function EmailsPage() {
         />
       </div>
 
+      {pageError && (
+        <Alert
+          type="error"
+          title={pageError.whatFailed}
+          reason={pageError.reason}
+          nextStep={pageError.nextStep}
+          details={pageError.details}
+          technicalDetails={pageError.technicalMessage}
+        />
+      )}
+
       {/* Logs table */}
       {logs.length === 0 ? (
         <EmptyState
@@ -288,10 +338,15 @@ export default function EmailsPage() {
                           log.status === "bounced") && (
                           <button
                             onClick={() => retryMutation.mutate(log._id)}
+                            disabled={retryTargetId === log._id}
                             className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
                             title="Retry"
                           >
-                            <RefreshCw className="w-4 h-4" />
+                            {retryTargetId === log._id ? (
+                              <Spinner size="sm" className="text-primary-600" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
                           </button>
                         )}
                       </td>
@@ -320,8 +375,17 @@ export default function EmailsPage() {
                 <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                   <span className="text-xs text-gray-400">{formatDate(log.sentAt || log.createdAt)}</span>
                   {(log.status === "failed" || log.status === "bounced") && (
-                    <button onClick={() => retryMutation.mutate(log._id)} className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform">
-                      <RefreshCw className="w-3.5 h-3.5" />Retry
+                    <button
+                      onClick={() => retryMutation.mutate(log._id)}
+                      disabled={retryTargetId === log._id}
+                      className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                    >
+                      {retryTargetId === log._id ? (
+                        <Spinner size="sm" className="text-primary-600" />
+                      ) : (
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      )}
+                      {retryTargetId === log._id ? "Retrying..." : "Retry"}
                     </button>
                   )}
                 </div>
@@ -362,10 +426,7 @@ export default function EmailsPage() {
             label="Recipient Batch"
             value={sendForm.recipientBatchId}
             onChange={(v) => setSendForm({ ...sendForm, recipientBatchId: v })}
-            options={(certBatches || []).map((b) => ({
-              label: `${b.batchName || b.originalFileName} (${b.summary?.valid || 0})`,
-              value: b._id,
-            }))}
+            options={recipientBatchOptions}
             placeholder="Select batch..."
           />
           <Select
@@ -388,9 +449,13 @@ export default function EmailsPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={sendMutation.isPending}>
+            <Button
+              type="submit"
+              loading={sendMutation.isPending}
+              loadingText="Sending emails..."
+            >
               <Send className="w-4 h-4" />
-              {sendMutation.isPending ? "Sending..." : "Send Emails"}
+              Send Emails
             </Button>
           </div>
         </form>

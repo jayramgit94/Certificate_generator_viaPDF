@@ -5,6 +5,8 @@ const Template = require("../models/Template");
 const ActivityLog = require("../models/ActivityLog");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
+const gridfsService = require("./gridfs.service");
+const quotaService = require("./quota.service");
 
 class TemplateService {
   /**
@@ -71,6 +73,10 @@ class TemplateService {
       throw AppError.badRequest("Template file (PDF or image) is required");
     }
 
+    await quotaService.ensureTemplateLimit(adminId);
+
+    const fileBuffer = this._extractUploadBuffer(templateFile);
+
     const ext = path.extname(templateFile.originalname).toLowerCase();
     const isImage = [".png", ".jpg", ".jpeg", ".webp"].includes(ext);
 
@@ -83,8 +89,7 @@ class TemplateService {
     } else {
       // Read PDF to get page count
       try {
-        const pdfBytes = fs.readFileSync(templateFile.path);
-        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const pdfDoc = await PDFDocument.load(fileBuffer);
         pdfPages = pdfDoc.getPageCount();
       } catch (error) {
         logger.error("Failed to read PDF:", error);
@@ -92,10 +97,25 @@ class TemplateService {
       }
     }
 
+    const templateFileId = await gridfsService.uploadBuffer({
+      buffer: fileBuffer,
+      filename: templateFile.originalname || `template-${Date.now()}${ext}`,
+      contentType: templateFile.mimetype || this._guessMimeType(ext),
+      metadata: {
+        adminId: adminId.toString(),
+        assetType: "template",
+        fileType,
+      },
+    });
+    const templateFileUrl = gridfsService.buildFileUrl(templateFileId);
+
     const template = await Template.create({
       admin: adminId,
       ...data,
-      pdfFile: templateFile.path,
+      pdfFile: templateFileUrl,
+      templateFileId,
+      templateFileName: templateFile.originalname,
+      templateMimeType: templateFile.mimetype || this._guessMimeType(ext),
       pdfPages,
       fileType,
     });
@@ -185,19 +205,42 @@ class TemplateService {
       throw AppError.notFound("Template");
     }
 
-    // Copy PDF file
-    const ext = path.extname(original.pdfFile);
-    const newPdfPath = original.pdfFile.replace(
-      path.basename(original.pdfFile),
-      `${Date.now()}-copy${ext}`,
-    );
+    await quotaService.ensureTemplateLimit(original.admin || adminId);
+
+    let originalBuffer;
+    let originalFilename;
+    let originalContentType;
 
     try {
-      fs.copyFileSync(original.pdfFile, newPdfPath);
+      const source = await this._resolveTemplateFile(original);
+      originalBuffer = source.buffer;
+      originalFilename = source.filename;
+      originalContentType = source.contentType;
     } catch (error) {
-      logger.error("Failed to copy PDF file:", error);
+      logger.error("Failed to read template file for duplication:", error);
       throw AppError.internal("Failed to duplicate template file");
     }
+
+    const originalExt =
+      path.extname(originalFilename || "") ||
+      path.extname(original.templateFileName || "") ||
+      (original.fileType === "image" ? ".png" : ".pdf");
+    const duplicateFilename = `${Date.now()}-copy${originalExt}`;
+
+    const newTemplateFileId = await gridfsService.uploadBuffer({
+      buffer: originalBuffer,
+      filename: duplicateFilename,
+      contentType:
+        originalContentType ||
+        original.templateMimeType ||
+        this._guessMimeType(originalExt),
+      metadata: {
+        adminId: adminId.toString(),
+        assetType: "template",
+        fileType: original.fileType,
+      },
+    });
+    const newTemplateFileUrl = gridfsService.buildFileUrl(newTemplateFileId);
 
     const duplicateData = original.toObject();
     delete duplicateData._id;
@@ -207,7 +250,11 @@ class TemplateService {
     const duplicate = await Template.create({
       ...duplicateData,
       name: `${original.name} (Copy)`,
-      pdfFile: newPdfPath,
+      pdfFile: newTemplateFileUrl,
+      templateFileId: newTemplateFileId,
+      templateFileName: duplicateFilename,
+      templateMimeType:
+        originalContentType || original.templateMimeType || null,
       isDefault: false,
       status: "draft",
     });
@@ -263,10 +310,23 @@ class TemplateService {
       fontFile.originalname,
       path.extname(fontFile.originalname),
     );
+    const fontBuffer = this._extractUploadBuffer(fontFile);
+    const fontFileId = await gridfsService.uploadBuffer({
+      buffer: fontBuffer,
+      filename: fontFile.originalname,
+      contentType: fontFile.mimetype || this._guessMimeType(fontFile.originalname),
+      metadata: {
+        adminId: adminId.toString(),
+        assetType: "font",
+        templateId: template._id.toString(),
+      },
+    });
 
     template.customFonts.push({
       name: fontName,
-      file: fontFile.path,
+      fileId: fontFileId,
+      file: gridfsService.buildFileUrl(fontFileId),
+      mimeType: fontFile.mimetype || null,
     });
 
     await template.save();
@@ -289,8 +349,23 @@ class TemplateService {
       throw AppError.notFound("Template");
     }
 
+    const signatureBuffer = this._extractUploadBuffer(signatureFile);
+    const signatureFileId = await gridfsService.uploadBuffer({
+      buffer: signatureBuffer,
+      filename: signatureFile.originalname,
+      contentType:
+        signatureFile.mimetype || this._guessMimeType(signatureFile.originalname),
+      metadata: {
+        adminId: adminId.toString(),
+        assetType: "signature",
+        templateId: template._id.toString(),
+      },
+    });
+
     template.signature = {
-      file: signatureFile.path,
+      fileId: signatureFileId,
+      file: gridfsService.buildFileUrl(signatureFileId),
+      mimeType: signatureFile.mimetype || null,
       page: template.signature?.page || 1,
       x: template.signature?.x || 50,
       y: template.signature?.y || 80,
@@ -319,16 +394,87 @@ class TemplateService {
       throw AppError.notFound("Template");
     }
 
-    // Build URL path for the uploaded file
-    const relativePath = imageFile.path
-      .replace(/\\/g, "/")
-      .split("/uploads/")
-      .pop();
-    template.backgroundImage = `/uploads/${relativePath}`;
+    const backgroundBuffer = this._extractUploadBuffer(imageFile);
+    const backgroundFileId = await gridfsService.uploadBuffer({
+      buffer: backgroundBuffer,
+      filename: imageFile.originalname,
+      contentType: imageFile.mimetype || this._guessMimeType(imageFile.originalname),
+      metadata: {
+        adminId: adminId.toString(),
+        assetType: "background",
+        templateId: template._id.toString(),
+      },
+    });
+
+    template.backgroundImageFileId = backgroundFileId;
+    template.backgroundImage = gridfsService.buildFileUrl(backgroundFileId);
 
     await template.save();
     logger.info(`Background image uploaded for template: ${template.name}`);
     return template;
+  }
+
+  _extractUploadBuffer(uploadedFile) {
+    if (uploadedFile?.buffer && Buffer.isBuffer(uploadedFile.buffer)) {
+      return uploadedFile.buffer;
+    }
+
+    if (uploadedFile?.path && fs.existsSync(uploadedFile.path)) {
+      return fs.readFileSync(uploadedFile.path);
+    }
+
+    throw AppError.badRequest("Uploaded file content is missing");
+  }
+
+  async _resolveTemplateFile(template) {
+    if (template.templateFileId) {
+      const { buffer, file } = await gridfsService.downloadToBuffer(
+        template.templateFileId,
+      );
+      return {
+        buffer,
+        filename: file.filename || template.templateFileName || "template-file",
+        contentType: file.contentType || template.templateMimeType || null,
+      };
+    }
+
+    const fileIdFromUrl = gridfsService.extractFileIdFromUrl(template.pdfFile);
+    if (fileIdFromUrl) {
+      const { buffer, file } = await gridfsService.downloadToBuffer(fileIdFromUrl);
+      return {
+        buffer,
+        filename: file.filename || template.templateFileName || "template-file",
+        contentType: file.contentType || template.templateMimeType || null,
+      };
+    }
+
+    if (template.pdfFile && fs.existsSync(template.pdfFile)) {
+      return {
+        buffer: fs.readFileSync(template.pdfFile),
+        filename:
+          template.templateFileName || path.basename(template.pdfFile) || "template-file",
+        contentType:
+          template.templateMimeType ||
+          this._guessMimeType(path.extname(template.pdfFile).toLowerCase()),
+      };
+    }
+
+    throw AppError.notFound("Template file");
+  }
+
+  _guessMimeType(input) {
+    const ext = (input || "").startsWith(".")
+      ? (input || "").toLowerCase()
+      : path.extname(input || "").toLowerCase();
+    if (ext === ".pdf") return "application/pdf";
+    if (ext === ".png") return "image/png";
+    if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+    if (ext === ".webp") return "image/webp";
+    if (ext === ".ttf") return "font/ttf";
+    if (ext === ".otf") return "font/otf";
+    if (ext === ".woff") return "font/woff";
+    if (ext === ".woff2") return "font/woff2";
+    return "application/octet-stream";
   }
 }
 

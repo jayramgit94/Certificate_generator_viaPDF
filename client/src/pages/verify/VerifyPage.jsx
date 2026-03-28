@@ -1,29 +1,40 @@
-import { Award, CheckCircle, Search, Shield, XCircle } from "lucide-react";
+import { ArrowLeft, Award, CheckCircle, Search, Shield } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Card, { CardContent } from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
-import api from "../../lib/api";
+import Alert from "../../components/ui/Alert";
+import api, { getApiErrorInfo } from "../../lib/api";
 import { formatDate } from "../../lib/utils";
 
 export default function VerifyPage() {
+  const navigate = useNavigate();
   const [certId, setCertId] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [errorInfo, setErrorInfo] = useState(null);
+
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate("/");
+  };
 
   const handleVerify = async (e) => {
     e.preventDefault();
     if (!certId.trim()) return;
     setLoading(true);
-    setError("");
+    setErrorInfo(null);
     setResult(null);
     try {
       const { data } = await api.get(`/certificates/verify/${certId.trim()}`);
       setResult(data.data);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Certificate not found or invalid",
+      setErrorInfo(
+        getApiErrorInfo(err, "Certificate not found or invalid"),
       );
     } finally {
       setLoading(false);
@@ -44,6 +55,16 @@ export default function VerifyPage() {
           <span className="text-sm text-gray-400 ml-1">
             Certificate Verification
           </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleGoBack}
+            className="ml-auto"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </Button>
         </div>
       </div>
 
@@ -70,26 +91,23 @@ export default function VerifyPage() {
                 placeholder="Enter Certificate ID (e.g., CERT-2024-XXXXXXXX)"
                 className="flex-1"
               />
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" loading={loading} loadingText="Verifying...">
                 <Search className="w-4 h-4" />
-                {loading ? "Verifying..." : "Verify"}
+                Verify
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {error && (
-          <Card className="border-danger-200 bg-danger-50">
-            <CardContent className="p-6 flex items-center gap-4">
-              <XCircle className="w-10 h-10 text-danger-500 shrink-0" />
-              <div>
-                <h3 className="font-semibold text-danger-800">
-                  Verification Failed
-                </h3>
-                <p className="text-sm text-danger-600 mt-0.5">{error}</p>
-              </div>
-            </CardContent>
-          </Card>
+        {errorInfo && (
+          <Alert
+            type="error"
+            title={errorInfo.whatFailed || "Verification failed"}
+            reason={errorInfo.reason}
+            nextStep={errorInfo.nextStep}
+            details={errorInfo.details}
+            technicalDetails={errorInfo.technicalMessage}
+          />
         )}
 
         {result && (

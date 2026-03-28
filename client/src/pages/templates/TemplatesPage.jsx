@@ -18,8 +18,13 @@ import EmptyState from "../../components/ui/EmptyState";
 import Input from "../../components/ui/Input";
 import Modal from "../../components/ui/Modal";
 import Pagination from "../../components/ui/Pagination";
-import { PageLoader } from "../../components/ui/Spinner";
+import Spinner, { PageLoader } from "../../components/ui/Spinner";
 import api, { getUploadUrl } from "../../lib/api";
+import {
+  getUploadLimitText,
+  UPLOAD_LIMITS,
+  validateUploadFile,
+} from "../../lib/uploadLimits";
 import { formatDate, truncate } from "../../lib/utils";
 
 export default function TemplatesPage() {
@@ -30,11 +35,13 @@ export default function TemplatesPage() {
   const [createModal, setCreateModal] = useState(false);
   const [templateFile, setTemplateFile] = useState(null);
   const fileInputRef = useRef(null);
+  const [duplicatingId, setDuplicatingId] = useState(null);
   const [newTemplate, setNewTemplate] = useState({
     name: "",
     description: "",
     category: "course",
   });
+  const templatePolicy = UPLOAD_LIMITS.template;
 
   const { data, isLoading } = useQuery({
     queryKey: ["templates", page, search],
@@ -85,6 +92,9 @@ export default function TemplatesPage() {
 
   const duplicateMutation = useMutation({
     mutationFn: (id) => api.post(`/templates/${id}/duplicate`),
+    onMutate: (id) => {
+      setDuplicatingId(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["templates"] });
       toast.success("Template duplicated!");
@@ -95,6 +105,9 @@ export default function TemplatesPage() {
           err.response?.data?.message ||
           "Failed to duplicate template",
       );
+    },
+    onSettled: () => {
+      setDuplicatingId(null);
     },
   });
 
@@ -180,9 +193,14 @@ export default function TemplatesPage() {
                       </Link>
                       <button
                         onClick={() => duplicateMutation.mutate(t._id)}
+                        disabled={duplicatingId === t._id}
                         className="p-2 bg-white rounded-lg shadow-lg hover:bg-gray-50 transition-colors"
                       >
-                        <Copy className="w-4 h-4 text-gray-700" />
+                        {duplicatingId === t._id ? (
+                          <Spinner size="sm" className="text-primary-600" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-gray-700" />
+                        )}
                       </button>
                       <button
                         onClick={() => setDeleteModal(t)}
@@ -242,6 +260,13 @@ export default function TemplatesPage() {
               toast.error("Please upload a PDF or image file");
               return;
             }
+
+            const validation = validateUploadFile(templateFile, templatePolicy);
+            if (!validation.ok) {
+              toast.error(`${validation.reason} ${validation.nextStep}`);
+              return;
+            }
+
             const fd = new FormData();
             fd.append("file", templateFile);
             fd.append("name", newTemplate.name);
@@ -292,8 +317,24 @@ export default function TemplatesPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,image/png,image/jpeg,image/jpg,image/webp"
-              onChange={(e) => setTemplateFile(e.target.files[0] || null)}
+              accept={templatePolicy.acceptedExtensions.join(",")}
+              onChange={(e) => {
+                const selected = e.target.files?.[0] || null;
+                if (!selected) {
+                  setTemplateFile(null);
+                  return;
+                }
+
+                const validation = validateUploadFile(selected, templatePolicy);
+                if (!validation.ok) {
+                  toast.error(`${validation.reason} ${validation.nextStep}`);
+                  e.target.value = "";
+                  setTemplateFile(null);
+                  return;
+                }
+
+                setTemplateFile(selected);
+              }}
               className="hidden"
             />
             <button
@@ -316,7 +357,7 @@ export default function TemplatesPage() {
                     Click to upload PDF or Image
                   </span>
                   <span className="text-xs text-gray-400">
-                    PDF, PNG, JPG, WebP (max 10MB)
+                    {getUploadLimitText(templatePolicy)}
                   </span>
                 </div>
               )}
@@ -331,8 +372,8 @@ export default function TemplatesPage() {
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create Template"}
+            <Button type="submit" loading={createMutation.isPending}>
+              Create Template
             </Button>
           </div>
         </form>
@@ -356,9 +397,9 @@ export default function TemplatesPage() {
           <Button
             variant="danger"
             onClick={() => deleteMutation.mutate(deleteModal._id)}
-            disabled={deleteMutation.isPending}
+            loading={deleteMutation.isPending}
           >
-            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            Delete
           </Button>
         </div>
       </Modal>

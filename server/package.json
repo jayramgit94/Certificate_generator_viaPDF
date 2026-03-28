@@ -9,7 +9,8 @@
     "test": "jest --coverage --forceExit --detectOpenHandles",
     "test:watch": "jest --watch",
     "lint": "eslint src/",
-    "seed": "node src/scripts/seed.js"
+    "seed": "node src/scripts/seed.js",
+    "migrate:gridfs": "node src/scripts/migrateGridfs.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

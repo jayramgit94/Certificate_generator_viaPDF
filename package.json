@@ -22,6 +22,7 @@
     "build": "cd client && npm run build",
     "start": "cd server && npm start",
     "seed": "cd server && node src/scripts/seed.js",
+    "migrate:gridfs": "cd server && npm run migrate:gridfs",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "test": "cd server && npm test"
   },

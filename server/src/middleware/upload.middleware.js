@@ -1,25 +1,10 @@
 const multer = require("multer");
-const fs = require("fs");
 const path = require("path");
-const { v4: uuidv4 } = require("uuid");
 const config = require("../config");
 const AppError = require("../utils/AppError");
 
-// Storage configuration — auto-creates the target directory if missing
-const createStorage = (destination) => {
-  return multer.diskStorage({
-    destination: (req, file, cb) => {
-      const dir = path.join(__dirname, "..", "..", "uploads", destination);
-      fs.mkdirSync(dir, { recursive: true }); // ensure dir exists
-      cb(null, dir);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      const uniqueName = `${uuidv4()}${ext}`;
-      cb(null, uniqueName);
-    },
-  });
-};
+// Memory storage for assets that are persisted to MongoDB GridFS
+const memoryStorage = multer.memoryStorage();
 
 // File filter: data files (CSV, XLSX, JSON)
 const dataFileFilter = (req, file, cb) => {
@@ -90,28 +75,35 @@ const imageFileFilter = (req, file, cb) => {
 
 // Upload middleware: data files (CSV/XLSX/JSON)
 const uploadData = multer({
-  storage: createStorage("data"),
+  storage: memoryStorage,
   fileFilter: dataFileFilter,
   limits: { fileSize: config.upload.maxFileSize },
 });
 
 // Upload middleware: PDF/image templates
 const uploadTemplate = multer({
-  storage: createStorage("templates"),
+  storage: memoryStorage,
   fileFilter: templateFileFilter,
+  limits: { fileSize: config.upload.maxTemplateSize },
+});
+
+// Upload middleware: image-only uploads (backgrounds)
+const uploadImage = multer({
+  storage: memoryStorage,
+  fileFilter: imageFileFilter,
   limits: { fileSize: config.upload.maxTemplateSize },
 });
 
 // Upload middleware: font files
 const uploadFont = multer({
-  storage: createStorage("fonts"),
+  storage: memoryStorage,
   fileFilter: fontFileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max for fonts
 });
 
 // Upload middleware: signature images
 const uploadSignature = multer({
-  storage: createStorage("signatures"),
+  storage: memoryStorage,
   fileFilter: imageFileFilter,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max for signatures
 });
@@ -130,6 +122,7 @@ const handleMulterError = (err, req, res, next) => {
 module.exports = {
   uploadData: uploadData.single("file"),
   uploadTemplate: uploadTemplate.single("file"),
+  uploadImage: uploadImage.single("file"),
   uploadFont: uploadFont.single("file"),
   uploadSignature: uploadSignature.single("file"),
   handleMulterError,

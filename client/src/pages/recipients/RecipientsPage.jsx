@@ -22,8 +22,13 @@ import Card from "../../components/ui/Card";
 import EmptyState from "../../components/ui/EmptyState";
 import Modal from "../../components/ui/Modal";
 import Pagination from "../../components/ui/Pagination";
-import { PageLoader } from "../../components/ui/Spinner";
+import Spinner, { InlineLoader, PageLoader } from "../../components/ui/Spinner";
 import api from "../../lib/api";
+import {
+  getUploadLimitText,
+  UPLOAD_LIMITS,
+  validateUploadFile,
+} from "../../lib/uploadLimits";
 import { formatDate, formatNumber } from "../../lib/utils";
 
 export default function RecipientsPage() {
@@ -34,8 +39,10 @@ export default function RecipientsPage() {
   const [viewBatch, setViewBatch] = useState(null);
   const [viewBatchLoading, setViewBatchLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState(null);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
   const [editForm, setEditForm] = useState({ name: "", email: "" });
+  const recipientsPolicy = UPLOAD_LIMITS.recipients;
 
   const fetchAndViewBatch = async (batch) => {
     setViewBatchLoading(true);
@@ -71,12 +78,33 @@ export default function RecipientsPage() {
     onSuccess: ({ data }) => {
       queryClient.invalidateQueries({ queryKey: ["recipients"] });
       setUploadModal(false);
-      toast.success(`${data.data?.summary?.total || 0} recipients uploaded!`);
+
+      const total = data.data?.summary?.total || 0;
+      const warningCount = data.data?.importInsights?.warningCount || 0;
+
+      if (warningCount > 0) {
+        toast.success(
+          `${total} recipients uploaded with ${warningCount} header-mapping warning(s).`,
+          { duration: 5000 },
+        );
+      } else {
+        toast.success(`${total} recipients uploaded!`);
+      }
+    },
+    onError: (err) => {
+      toast.error(
+        err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          "Failed to upload recipients",
+      );
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/recipients/${id}`),
+    onMutate: (id) => {
+      setDeleteTargetId(id);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["recipients"] });
       setDeleteModal(null);
@@ -88,6 +116,9 @@ export default function RecipientsPage() {
           err.response?.data?.message ||
           "Failed to delete batch",
       );
+    },
+    onSettled: () => {
+      setDeleteTargetId(null);
     },
   });
 
@@ -131,21 +162,40 @@ export default function RecipientsPage() {
     });
   };
 
-  const onDrop = useCallback((acceptedFiles) => {
-    if (acceptedFiles[0]) uploadMutation.mutate(acceptedFiles[0]);
-  }, []);
+  const onDrop = useCallback(
+    (acceptedFiles) => {
+      const selected = acceptedFiles[0];
+      if (!selected) return;
+
+      const validation = validateUploadFile(selected, recipientsPolicy);
+      if (!validation.ok) {
+        toast.error(`${validation.reason} ${validation.nextStep}`);
+        return;
+      }
+
+      uploadMutation.mutate(selected);
+    },
+    [recipientsPolicy, uploadMutation],
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected: (rejections) => {
+      const firstError = rejections?.[0]?.errors?.[0]?.message;
+      if (firstError) {
+        toast.error(firstError);
+      }
+    },
     accept: {
       "text/csv": [".csv"],
+      "application/vnd.ms-excel": [".xls"],
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
         ".xlsx",
       ],
       "application/json": [".json"],
     },
     maxFiles: 1,
-    maxSize: 10 * 1024 * 1024,
+    maxSize: recipientsPolicy.maxSizeMb * 1024 * 1024,
   });
 
   if (isLoading) return <PageLoader />;
@@ -327,15 +377,15 @@ export default function RecipientsPage() {
               : "Drag & drop or click to upload"}
           </p>
           <p className="text-xs text-gray-400 mt-2">
-            CSV, XLSX, or JSON — Max 10MB
+            {getUploadLimitText(recipientsPolicy)}
           </p>
           <p className="text-xs text-gray-400 mt-1">
             Required columns: <strong>name</strong>, <strong>email</strong>
           </p>
         </div>
         {uploadMutation.isPending && (
-          <div className="mt-4 text-center text-sm text-primary-600">
-            Uploading and processing...
+          <div className="mt-4 text-center">
+            <InlineLoader label="Uploading and processing..." />
           </div>
         )}
       </Modal>
@@ -349,6 +399,21 @@ export default function RecipientsPage() {
       >
         {viewBatch && (
           <div className="space-y-4">
+            {(viewBatch.importInsights?.warningCount || 0) > 0 && (
+              <div className="rounded-lg border border-warning-200 bg-warning-50 p-3">
+                <p className="text-sm font-medium text-warning-800">
+                  Mapping warnings: {viewBatch.importInsights.warningCount}
+                </p>
+                <ul className="mt-2 space-y-1 text-xs text-warning-700 list-disc list-inside">
+                  {(viewBatch.importInsights.warnings || [])
+                    .slice(0, 5)
+                    .map((warning, index) => (
+                      <li key={`${warning}-${index}`}>{warning}</li>
+                    ))}
+                </ul>
+              </div>
+            )}
+
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-gray-50 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-gray-900">
@@ -436,7 +501,11 @@ export default function RecipientsPage() {
                                 className="p-1 text-success-600 hover:bg-success-50 rounded transition-colors"
                                 title="Save"
                               >
-                                <Save className="w-4 h-4" />
+                                {updateRecordMutation.isPending ? (
+                                  <Spinner size="sm" className="text-success-600" />
+                                ) : (
+                                  <Save className="w-4 h-4" />
+                                )}
                               </button>
                               <button
                                 onClick={cancelEditing}
@@ -501,9 +570,10 @@ export default function RecipientsPage() {
           <Button
             variant="danger"
             onClick={() => deleteMutation.mutate(deleteModal._id)}
-            disabled={deleteMutation.isPending}
+            loading={deleteMutation.isPending}
+            disabled={deleteTargetId !== null && deleteTargetId !== deleteModal?._id}
           >
-            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            Delete
           </Button>
         </div>
       </Modal>

@@ -4,8 +4,8 @@ services:
     runtime: node
     region: oregon
     plan: free
-    rootDir: server
-    buildCommand: npm install
+    rootDir: .
+    buildCommand: npm run install:all && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -42,3 +42,5 @@ services:
         value: 100
       - key: LOG_LEVEL
         value: info
+      - key: GRIDFS_BUCKET
+        value: files

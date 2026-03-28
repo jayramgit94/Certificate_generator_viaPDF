@@ -53,6 +53,24 @@ const summarySchema = new mongoose.Schema(
   { _id: false },
 );
 
+const importInsightSchema = new mongoose.Schema(
+  {
+    headers: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
+    },
+    warnings: {
+      type: [String],
+      default: [],
+    },
+    warningCount: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false },
+);
+
 const recipientSchema = new mongoose.Schema(
   {
     admin: {
@@ -80,6 +98,10 @@ const recipientSchema = new mongoose.Schema(
     records: [recordSchema],
     summary: {
       type: summarySchema,
+      default: () => ({}),
+    },
+    importInsights: {
+      type: importInsightSchema,
       default: () => ({}),
     },
     status: {

@@ -10,6 +10,7 @@ const { generateBatchId } = require("../utils/idGenerator");
 const config = require("../config");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
+const gridfsService = require("./gridfs.service");
 
 class EmailService {
   /**
@@ -24,11 +25,7 @@ class EmailService {
       throw AppError.notFound("Certificate");
     }
 
-    if (!certificate.pdfPath || !fs.existsSync(certificate.pdfPath)) {
-      throw AppError.badRequest(
-        "Certificate PDF not found. Generate the certificate first.",
-      );
-    }
+    const attachment = await this._buildCertificateAttachment(certificate);
 
     // Get email template
     let subject = options.subject;
@@ -77,13 +74,7 @@ class EmailService {
         toName: certificate.recipientName,
         subject,
         html: body,
-        attachments: [
-          {
-            filename: `${certificate.certificateId}.pdf`,
-            path: certificate.pdfPath,
-            contentType: "application/pdf",
-          },
-        ],
+        attachments: [attachment],
       });
 
       // Update email log
@@ -218,27 +209,19 @@ class EmailService {
       try {
         // Re-send
         const certificate = await Certificate.findById(log.certificate);
-        if (
-          !certificate ||
-          !certificate.pdfPath ||
-          !fs.existsSync(certificate.pdfPath)
-        ) {
+        if (!certificate) {
           results.failed++;
           continue;
         }
+
+        const attachment = await this._buildCertificateAttachment(certificate);
 
         const sendResult = await this._sendEmail({
           to: log.recipientEmail,
           toName: log.recipientName,
           subject: log.subject,
           html: log.body,
-          attachments: [
-            {
-              filename: `${certificate.certificateId}.pdf`,
-              path: certificate.pdfPath,
-              contentType: "application/pdf",
-            },
-          ],
+          attachments: [attachment],
         });
 
         // Update log
@@ -465,6 +448,41 @@ class EmailService {
   }
 
   // ===== Private Methods =====
+
+  async _buildCertificateAttachment(certificate) {
+    const filename = `${certificate.certificateId}.pdf`;
+
+    if (certificate.pdfFileId) {
+      const { buffer } = await gridfsService.downloadToBuffer(certificate.pdfFileId);
+      return {
+        filename,
+        content: buffer,
+        contentType: "application/pdf",
+      };
+    }
+
+    const fileIdFromUrl = gridfsService.extractFileIdFromUrl(certificate.pdfPath);
+    if (fileIdFromUrl) {
+      const { buffer } = await gridfsService.downloadToBuffer(fileIdFromUrl);
+      return {
+        filename,
+        content: buffer,
+        contentType: "application/pdf",
+      };
+    }
+
+    if (certificate.pdfPath && fs.existsSync(certificate.pdfPath)) {
+      return {
+        filename,
+        path: certificate.pdfPath,
+        contentType: "application/pdf",
+      };
+    }
+
+    throw AppError.badRequest(
+      "Certificate PDF not found. Generate the certificate first.",
+    );
+  }
 
   /**
    * Check if SMTP is properly configured

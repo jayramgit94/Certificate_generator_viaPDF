@@ -20,7 +20,11 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) {
+      return callback(new Error("Origin header is required"));
+    }
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS`));

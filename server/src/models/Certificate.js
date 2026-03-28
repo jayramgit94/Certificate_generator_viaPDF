@@ -54,6 +54,11 @@ const certificateSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    pdfFileId: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+      index: true,
+    },
     pdfSize: {
       type: Number,
       default: 0,

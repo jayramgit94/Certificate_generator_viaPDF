@@ -1,5 +1,37 @@
 const templateService = require("../services/template.service");
 const asyncHandler = require("../utils/asyncHandler");
+const AppError = require("../utils/AppError");
+const {
+  createTemplateSchema,
+  updateTemplateSchema,
+} = require("../validators/template.validator");
+
+const parseMaybeJsonField = (value, fieldName) => {
+  if (typeof value !== "string") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    throw AppError.validation("Validation failed", [
+      {
+        field: fieldName,
+        message: `${fieldName} must be valid JSON`,
+      },
+    ]);
+  }
+};
+
+const validateWithSchema = (schema, data) => {
+  const result = schema.safeParse(data);
+  if (!result.success) {
+    const details = result.error.errors.map((err) => ({
+      field: err.path.join("."),
+      message: err.message,
+    }));
+    throw AppError.validation("Validation failed", details);
+  }
+  return result.data;
+};
 
 /**
  * @desc    List all templates
@@ -39,12 +71,11 @@ const getById = asyncHandler(async (req, res) => {
 const create = asyncHandler(async (req, res) => {
   // Parse JSON fields from multipart form data
   let data = { ...req.body };
-  if (typeof data.fields === "string") {
-    data.fields = JSON.parse(data.fields);
-  }
-  if (typeof data.qrCode === "string") {
-    data.qrCode = JSON.parse(data.qrCode);
-  }
+  data.fields = parseMaybeJsonField(data.fields, "fields");
+  data.qrCode = parseMaybeJsonField(data.qrCode, "qrCode");
+  data.signature = parseMaybeJsonField(data.signature, "signature");
+
+  data = validateWithSchema(createTemplateSchema, data);
 
   const template = await templateService.create(req.user._id, data, req.file);
 
@@ -61,12 +92,11 @@ const create = asyncHandler(async (req, res) => {
  */
 const update = asyncHandler(async (req, res) => {
   let updates = { ...req.body };
-  if (typeof updates.fields === "string") {
-    updates.fields = JSON.parse(updates.fields);
-  }
-  if (typeof updates.qrCode === "string") {
-    updates.qrCode = JSON.parse(updates.qrCode);
-  }
+  updates.fields = parseMaybeJsonField(updates.fields, "fields");
+  updates.qrCode = parseMaybeJsonField(updates.qrCode, "qrCode");
+  updates.signature = parseMaybeJsonField(updates.signature, "signature");
+
+  updates = validateWithSchema(updateTemplateSchema, updates);
 
   const template = await templateService.update(
     req.params.id,

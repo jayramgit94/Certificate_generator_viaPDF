@@ -10,6 +10,7 @@ import { PageLoader } from "./components/ui/Spinner";
 // Auth pages (eager — needed immediately)
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 // Dashboard pages (lazy — loaded on demand)
 const AnalyticsPage = lazy(() => import("./pages/analytics/AnalyticsPage"));
@@ -73,8 +74,8 @@ export default function App() {
         <Route path="/settings" element={<SuspenseWrapper><SettingsPage /></SuspenseWrapper>} />
       </Route>
 
-      {/* Redirects */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Marketing landing */}
+      <Route path="/" element={<SuspenseWrapper><LandingPage /></SuspenseWrapper>} />
       <Route path="*" element={<SuspenseWrapper><NotFoundPage /></SuspenseWrapper>} />
     </Routes>
   );

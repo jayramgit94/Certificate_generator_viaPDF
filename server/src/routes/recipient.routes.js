@@ -9,7 +9,6 @@ const { uploadLimiter } = require("../middleware/rateLimiter.middleware");
 const {
   manualRecipientSchema,
   updateRecordSchema,
-  batchNameSchema,
 } = require("../validators/recipient.validator");
 
 // All routes require authentication

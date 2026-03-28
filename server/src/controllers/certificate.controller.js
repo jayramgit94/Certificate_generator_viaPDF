@@ -6,7 +6,10 @@ const asyncHandler = require("../utils/asyncHandler");
  * @route   POST /api/certificates/generate
  */
 const generateSingle = asyncHandler(async (req, res) => {
-  const { templateId, ...recipientData } = req.body;
+  const { templateId, recipientData: nestedRecipientData, ...flatRecipientData } =
+    req.body;
+  const recipientData = nestedRecipientData || flatRecipientData;
+
   const certificate = await certificateService.generateSingle(
     req.user._id,
     templateId,

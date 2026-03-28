@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Award, Download, Play, Search, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import Alert from "../../components/ui/Alert";
 import Badge from "../../components/ui/Badge";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
@@ -10,8 +11,8 @@ import EmptyState from "../../components/ui/EmptyState";
 import Modal from "../../components/ui/Modal";
 import Pagination from "../../components/ui/Pagination";
 import Select from "../../components/ui/Select";
-import { PageLoader } from "../../components/ui/Spinner";
-import api from "../../lib/api";
+import Spinner, { PageLoader } from "../../components/ui/Spinner";
+import api, { getApiErrorInfo } from "../../lib/api";
 import { downloadBlob, formatDate } from "../../lib/utils";
 
 export default function CertificatesPage() {
@@ -24,7 +25,9 @@ export default function CertificatesPage() {
     templateId: "",
     recipientBatchId: "",
   });
-  const [previewCert, setPreviewCert] = useState(null);
+  const [pageError, setPageError] = useState(null);
+  const [downloadTargetId, setDownloadTargetId] = useState(null);
+  const [revokeTargetId, setRevokeTargetId] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["certificates", page, search, statusFilter],
@@ -49,13 +52,46 @@ export default function CertificatesPage() {
         .then((r) => r.data.data?.templates || []),
   });
 
-  const { data: batches } = useQuery({
+  const {
+    data: batches = [],
+    isLoading: isBatchesLoading,
+    isError: isBatchesError,
+    refetch: refetchBatches,
+  } = useQuery({
     queryKey: ["batches-list"],
     queryFn: () =>
       api
         .get("/recipients", { params: { limit: 100 } })
-        .then((r) => r.data.data?.batches || []),
+        .then((r) => {
+          const payload = r.data?.data;
+          if (Array.isArray(payload)) return payload;
+          if (Array.isArray(payload?.batches)) return payload.batches;
+          if (Array.isArray(payload?.items)) return payload.items;
+          return [];
+        }),
   });
+
+  const batchOptions = useMemo(() => {
+    return (batches || [])
+      .map((batch) => {
+        const id = batch?._id || batch?.id || "";
+        if (!id) return null;
+
+        const displayName =
+          batch.batchName ||
+          batch.sourceFile ||
+          batch.originalFileName ||
+          "Untitled batch";
+        const valid = Number(batch?.summary?.valid || 0);
+        const total = Number(batch?.summary?.total || 0);
+
+        return {
+          value: id,
+          label: `${displayName} (${valid} valid / ${total} total)`,
+        };
+      })
+      .filter(Boolean);
+  }, [batches]);
 
   const generateMutation = useMutation({
     mutationFn: (formData) =>
@@ -63,53 +99,66 @@ export default function CertificatesPage() {
         templateId: formData.templateId,
         batchId: formData.recipientBatchId,
       }),
-    onSuccess: ({ data }) => {
+    onMutate: () => {
+      setPageError(null);
+    },
+    onSuccess: ({ data: responseData }) => {
       queryClient.invalidateQueries({ queryKey: ["certificates"] });
       setGenerateModal(false);
-      if (data.data?.success === 0 && data.data?.total > 0) {
-        const firstError = data.data?.errors?.[0]?.error || "Unknown error";
+      setPageError(null);
+
+      if (responseData.data?.success === 0 && responseData.data?.total > 0) {
+        const firstError = responseData.data?.errors?.[0]?.error || "Unknown error";
         toast.error(`Failed to generate certificates: ${firstError}`);
       } else {
-        toast.success(data.message || `Certificates generated!`);
+        toast.success(responseData.message || "Certificates generated!");
       }
     },
     onError: (err) => {
-      const errData = err.response?.data;
-      const firstError = errData?.data?.errors?.[0]?.error;
-      toast.error(
-        firstError ||
-          errData?.error?.message ||
-          errData?.message ||
-          "Failed to generate certificates",
-      );
+      const errorInfo = getApiErrorInfo(err, "Failed to generate certificates");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
     },
   });
 
   const downloadCert = async (certId) => {
+    setDownloadTargetId(certId);
+    setPageError(null);
+
     try {
       const response = await api.get(`/certificates/${certId}/download`, {
         responseType: "blob",
       });
       downloadBlob(response.data, `certificate-${certId}.pdf`);
       toast.success("Certificate downloaded");
-    } catch {
-      toast.error("Download failed");
+    } catch (err) {
+      const errorInfo = getApiErrorInfo(err, "Download failed");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
+    } finally {
+      setDownloadTargetId(null);
     }
   };
 
   const revokeMutation = useMutation({
     mutationFn: (id) =>
       api.put(`/certificates/${id}/revoke`, { reason: "Revoked by admin" }),
+    onMutate: (id) => {
+      setRevokeTargetId(id);
+      setPageError(null);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["certificates"] });
+      setPageError(null);
       toast.success("Certificate revoked");
     },
     onError: (err) => {
-      toast.error(
-        err.response?.data?.error?.message ||
-          err.response?.data?.message ||
-          "Failed to revoke certificate",
-      );
+      const errorInfo = getApiErrorInfo(err, "Failed to revoke certificate");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
+    },
+    onSettled: () => {
+      setRevokeTargetId(null);
     },
   });
 
@@ -125,7 +174,6 @@ export default function CertificatesPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
     >
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 font-display">
@@ -141,7 +189,6 @@ export default function CertificatesPage() {
         </Button>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
         <div className="relative flex-1 min-w-0 sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -172,7 +219,17 @@ export default function CertificatesPage() {
         />
       </div>
 
-      {/* Table */}
+      {pageError && (
+        <Alert
+          type="error"
+          title={pageError.whatFailed}
+          reason={pageError.reason}
+          nextStep={pageError.nextStep}
+          details={pageError.details}
+          technicalDetails={pageError.technicalMessage}
+        />
+      )}
+
       {certificates.length === 0 ? (
         <EmptyState
           icon={Award}
@@ -187,7 +244,6 @@ export default function CertificatesPage() {
         />
       ) : (
         <>
-          {/* Desktop table */}
           <Card className="overflow-hidden hidden sm:block">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -224,20 +280,14 @@ export default function CertificatesPage() {
                           <div className="w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center">
                             <Award className="w-4 h-4 text-primary-600" />
                           </div>
-                          <div>
-                            <p className="text-sm font-mono font-medium text-gray-900">
-                              {cert.certificateId}
-                            </p>
-                          </div>
+                          <p className="text-sm font-mono font-medium text-gray-900">
+                            {cert.certificateId}
+                          </p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-900">
-                          {cert.recipientName}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {cert.recipientEmail}
-                        </p>
+                        <p className="text-sm text-gray-900">{cert.recipientName}</p>
+                        <p className="text-xs text-gray-400">{cert.recipientEmail}</p>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {cert.template?.name || "N/A"}
@@ -262,18 +312,28 @@ export default function CertificatesPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => downloadCert(cert._id)}
+                            disabled={downloadTargetId === cert._id}
                             className="p-1.5 text-gray-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 transition-colors"
                             title="Download PDF"
                           >
-                            <Download className="w-4 h-4" />
+                            {downloadTargetId === cert._id ? (
+                              <Spinner size="sm" className="text-primary-600" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
                           </button>
                           {cert.status !== "revoked" && (
                             <button
                               onClick={() => revokeMutation.mutate(cert._id)}
+                              disabled={revokeTargetId === cert._id}
                               className="p-1.5 text-gray-400 hover:text-danger-600 rounded-lg hover:bg-danger-50 transition-colors"
                               title="Revoke"
                             >
-                              <XCircle className="w-4 h-4" />
+                              {revokeTargetId === cert._id ? (
+                                <Spinner size="sm" className="text-danger-600" />
+                              ) : (
+                                <XCircle className="w-4 h-4" />
+                              )}
                             </button>
                           )}
                         </div>
@@ -285,7 +345,6 @@ export default function CertificatesPage() {
             </div>
           </Card>
 
-          {/* Mobile card list */}
           <div className="sm:hidden space-y-3">
             {certificates.map((cert) => (
               <Card key={cert._id} className="p-4">
@@ -322,18 +381,28 @@ export default function CertificatesPage() {
                 <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2">
                   <button
                     onClick={() => downloadCert(cert._id)}
+                    disabled={downloadTargetId === cert._id}
                     className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    Download
+                    {downloadTargetId === cert._id ? (
+                      <Spinner size="sm" className="text-primary-600" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    {downloadTargetId === cert._id ? "Downloading..." : "Download"}
                   </button>
                   {cert.status !== "revoked" && (
                     <button
                       onClick={() => revokeMutation.mutate(cert._id)}
+                      disabled={revokeTargetId === cert._id}
                       className="flex items-center gap-1.5 text-xs font-medium text-danger-600 bg-danger-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
                     >
-                      <XCircle className="w-3.5 h-3.5" />
-                      Revoke
+                      {revokeTargetId === cert._id ? (
+                        <Spinner size="sm" className="text-danger-600" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5" />
+                      )}
+                      {revokeTargetId === cert._id ? "Revoking..." : "Revoke"}
                     </button>
                   )}
                 </div>
@@ -349,7 +418,6 @@ export default function CertificatesPage() {
         </>
       )}
 
-      {/* Generate Modal */}
       <Modal
         isOpen={generateModal}
         onClose={() => setGenerateModal(false)}
@@ -366,9 +434,7 @@ export default function CertificatesPage() {
           <Select
             label="Template"
             value={generateForm.templateId}
-            onChange={(v) =>
-              setGenerateForm({ ...generateForm, templateId: v })
-            }
+            onChange={(v) => setGenerateForm({ ...generateForm, templateId: v })}
             options={(templates || []).map((t) => ({
               label: t.name,
               value: t._id,
@@ -381,12 +447,27 @@ export default function CertificatesPage() {
             onChange={(v) =>
               setGenerateForm({ ...generateForm, recipientBatchId: v })
             }
-            options={(batches || []).map((b) => ({
-              label: `${b.batchName || b.originalFileName} (${b.summary?.valid || 0} recipients)`,
-              value: b._id,
-            }))}
+            options={batchOptions}
             placeholder="Select a batch..."
           />
+          {isBatchesLoading && (
+            <p className="text-xs text-gray-500">Loading recipient batches...</p>
+          )}
+          {isBatchesError && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-danger-200 bg-danger-50 px-3 py-2">
+              <p className="text-xs text-danger-700">
+                Failed to load recipient batches.
+              </p>
+              <Button size="sm" variant="secondary" onClick={() => refetchBatches()}>
+                Retry
+              </Button>
+            </div>
+          )}
+          {!isBatchesLoading && !isBatchesError && batchOptions.length === 0 && (
+            <p className="text-xs text-warning-700 bg-warning-50 border border-warning-200 rounded-lg px-3 py-2">
+              No recipient batches found. Upload recipients first.
+            </p>
+          )}
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <Button
               variant="secondary"
@@ -397,13 +478,14 @@ export default function CertificatesPage() {
             </Button>
             <Button
               type="submit"
+              loading={generateMutation.isPending}
               disabled={
-                generateMutation.isPending ||
                 !generateForm.templateId ||
-                !generateForm.recipientBatchId
+                !generateForm.recipientBatchId ||
+                batchOptions.length === 0
               }
             >
-              {generateMutation.isPending ? "Generating..." : "Generate"}
+              Generate
             </Button>
           </div>
         </form>

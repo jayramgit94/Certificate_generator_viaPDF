@@ -4,6 +4,7 @@ const certificateController = require("../controllers/certificate.controller");
 const authenticate = require("../middleware/auth.middleware");
 const authorize = require("../middleware/role.middleware");
 const validate = require("../middleware/validate.middleware");
+const { verifyLimiter } = require("../middleware/rateLimiter.middleware");
 const {
   generateCertificateSchema,
   generateBatchSchema,
@@ -11,7 +12,7 @@ const {
 } = require("../validators/certificate.validator");
 
 // Public verification route (no auth needed)
-router.get("/verify/:certificateId", certificateController.verify);
+router.get("/verify/:certificateId", verifyLimiter, certificateController.verify);
 
 // Protected routes
 router.use(authenticate);

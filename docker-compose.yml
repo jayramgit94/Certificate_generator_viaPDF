@@ -44,6 +44,7 @@ services:
       EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-noreply@certifypro.com}
       EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-CertifyPro}
       CLIENT_URL: ${CLIENT_URL:-http://localhost:5000}
+      GRIDFS_BUCKET: ${GRIDFS_BUCKET:-files}
     volumes:
       - uploads_data:/app/server/uploads
       - logs_data:/app/server/logs

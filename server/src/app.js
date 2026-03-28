@@ -1,6 +1,7 @@
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
+const fs = require("fs");
 const path = require("path");
 const corsOptions = require("./config/cors");
 const { generalLimiter } = require("./middleware/rateLimiter.middleware");
@@ -10,6 +11,7 @@ const {
 } = require("./middleware/errorHandler.middleware");
 const routes = require("./routes");
 const logger = require("./utils/logger");
+const config = require("./config");
 
 const app = express();
 
@@ -54,6 +56,23 @@ app.use(
 
 // ===== API Routes =====
 app.use("/api", routes);
+
+// ===== Production Frontend Serving =====
+if (config.env === "production") {
+  const clientDistPath = path.join(__dirname, "..", "..", "client", "dist");
+  const indexPath = path.join(clientDistPath, "index.html");
+
+  if (fs.existsSync(indexPath)) {
+    app.use(express.static(clientDistPath));
+
+    // SPA fallback for non-API routes
+    app.get(/^\/(?!api).*/, (req, res, next) => {
+      res.sendFile(indexPath, (error) => {
+        if (error) next(error);
+      });
+    });
+  }
+}
 
 // ===== Root Endpoint =====
 app.get("/", (req, res) => {

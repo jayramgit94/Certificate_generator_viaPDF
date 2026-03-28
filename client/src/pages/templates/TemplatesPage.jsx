@@ -39,7 +39,19 @@ const getTemplateImageCandidates = (tpl) => {
     candidates.push(getUploadUrl(tpl.backgroundImage));
   }
 
+  if (tpl?.backgroundImageFileId) {
+    candidates.push(getUploadUrl(`/api/files/${tpl.backgroundImageFileId}`));
+  }
+
   if (isImageTemplate(tpl) && tpl?.pdfFile) {
+    candidates.push(getUploadUrl(tpl.pdfFile));
+  }
+
+  if (tpl?.templateFileId) {
+    candidates.push(getUploadUrl(`/api/files/${tpl.templateFileId}`));
+  }
+
+  if (tpl?.pdfFile) {
     candidates.push(getUploadUrl(tpl.pdfFile));
   }
 

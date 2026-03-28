@@ -10,6 +10,8 @@ const serveFile = async (req, res, next) => {
       "Content-Type",
       file.contentType || "application/octet-stream",
     );
+    // Allow cross-origin embedding for image/pdf assets used by frontend previews.
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     res.setHeader(
       "Content-Disposition",
       `${shouldDownload ? "attachment" : "inline"}; filename="${safeName}"`,

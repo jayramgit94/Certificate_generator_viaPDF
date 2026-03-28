@@ -9,6 +9,81 @@ const gridfsService = require("./gridfs.service");
 const quotaService = require("./quota.service");
 
 class TemplateService {
+  _normalizeAssetUrl(value) {
+    if (!value || typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const gridfsId = gridfsService.extractFileIdFromUrl(trimmed);
+    if (gridfsId) {
+      return gridfsService.buildFileUrl(gridfsId);
+    }
+
+    return trimmed;
+  }
+
+  _isLikelyImageTemplate(template) {
+    if (!template) return false;
+
+    if (template.fileType === "image") return true;
+
+    const mimeType = String(template.templateMimeType || "").toLowerCase();
+    if (mimeType.startsWith("image/")) return true;
+
+    const nameCandidates = [
+      template.templateFileName,
+      template.backgroundImage,
+      template.pdfFile,
+    ];
+
+    return nameCandidates.some((candidate) =>
+      /\.(png|jpe?g|webp)(\?.*)?$/i.test(String(candidate || "")),
+    );
+  }
+
+  _hydrateTemplatePreview(template) {
+    if (!template) return template;
+
+    const normalizedPdfFile = this._normalizeAssetUrl(template.pdfFile);
+    const normalizedBackgroundImage = this._normalizeAssetUrl(
+      template.backgroundImage,
+    );
+
+    const backgroundFromId = template.backgroundImageFileId
+      ? gridfsService.buildFileUrl(template.backgroundImageFileId.toString())
+      : null;
+
+    const templateFileFromId = template.templateFileId
+      ? gridfsService.buildFileUrl(template.templateFileId.toString())
+      : null;
+
+    const isImageTemplate = this._isLikelyImageTemplate(template);
+    const previewUrl =
+      normalizedBackgroundImage ||
+      backgroundFromId ||
+      (isImageTemplate ? normalizedPdfFile : null) ||
+      (isImageTemplate ? templateFileFromId : null) ||
+      null;
+
+    if (normalizedPdfFile) {
+      template.pdfFile = normalizedPdfFile;
+    }
+
+    if (previewUrl) {
+      template.backgroundImage = previewUrl;
+    }
+
+    if (isImageTemplate && !template.backgroundImageFileId && template.templateFileId) {
+      template.backgroundImageFileId = template.templateFileId;
+    }
+
+    if (isImageTemplate && template.fileType !== "image") {
+      template.fileType = "image";
+    }
+
+    return template;
+  }
+
   /**
    * List all templates for an admin
    */
@@ -43,6 +118,8 @@ class TemplateService {
       Template.countDocuments(filter),
     ]);
 
+    templates.forEach((template) => this._hydrateTemplatePreview(template));
+
     return {
       templates,
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
@@ -62,7 +139,7 @@ class TemplateService {
     if (!template) {
       throw AppError.notFound("Template");
     }
-    return template;
+    return this._hydrateTemplatePreview(template);
   }
 
   /**

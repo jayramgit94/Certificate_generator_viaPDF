@@ -51,6 +51,10 @@ app.use(
   express.static(path.join(__dirname, "..", "uploads"), {
     dotfiles: "deny",
     index: false,
+    setHeaders: (res) => {
+      // Required for serving uploaded assets to a different frontend origin.
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    },
   }),
 );
 

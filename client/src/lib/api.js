@@ -8,14 +8,57 @@ const SERVER_ORIGIN = API_BASE.startsWith("http")
   ? API_BASE.replace(/\/api\/?$/, "")
   : "";
 
+const GRIDFS_FILE_ID_PATTERN = /\/api\/files\/([a-fA-F0-9]{24})(?:[/?#].*)?$/;
+
 /**
  * Convert a relative /uploads/... path to an absolute URL in production.
  * In dev the Vite proxy handles it, so we return the path as-is.
  */
 export function getUploadUrl(relativePath) {
   if (!relativePath) return "";
-  if (relativePath.startsWith("http")) return relativePath; // already absolute
-  return `${SERVER_ORIGIN}${relativePath}`;
+
+  const input = String(relativePath).trim();
+  if (!input) return "";
+
+  if (input.startsWith("data:")) return input;
+
+  const gridfsMatch = input.match(GRIDFS_FILE_ID_PATTERN);
+  if (gridfsMatch) {
+    const canonical = `/api/files/${gridfsMatch[1]}`;
+    return SERVER_ORIGIN ? `${SERVER_ORIGIN}${canonical}` : canonical;
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const parsed = new URL(input);
+
+      if (
+        (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") &&
+        SERVER_ORIGIN
+      ) {
+        return `${SERVER_ORIGIN}${parsed.pathname}`;
+      }
+
+      if (
+        typeof window !== "undefined" &&
+        window.location.protocol === "https:" &&
+        parsed.protocol === "http:"
+      ) {
+        parsed.protocol = "https:";
+      }
+
+      return parsed.toString();
+    } catch {
+      return input;
+    }
+  }
+
+  if (input.startsWith("/")) {
+    return SERVER_ORIGIN ? `${SERVER_ORIGIN}${input}` : input;
+  }
+
+  const normalized = `/${input.replace(/^\/+/, "")}`;
+  return SERVER_ORIGIN ? `${SERVER_ORIGIN}${normalized}` : normalized;
 }
 
 const api = axios.create({

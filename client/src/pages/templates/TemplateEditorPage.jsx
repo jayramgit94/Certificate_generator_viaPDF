@@ -9,7 +9,7 @@ import {
   Type,
   Upload,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 import { useNavigate, useParams } from "react-router-dom";
@@ -24,6 +24,25 @@ import {
   UPLOAD_LIMITS,
   validateUploadFile,
 } from "../../lib/uploadLimits";
+
+const isImageTemplate = (tpl) =>
+  tpl?.fileType === "image" ||
+  (typeof tpl?.templateMimeType === "string" &&
+    tpl.templateMimeType.startsWith("image/"));
+
+const getTemplatePreviewCandidates = (tpl) => {
+  const candidates = [];
+
+  if (tpl?.backgroundImage) {
+    candidates.push(getUploadUrl(tpl.backgroundImage));
+  }
+
+  if (isImageTemplate(tpl) && tpl?.pdfFile) {
+    candidates.push(getUploadUrl(tpl.pdfFile));
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+};
 
 export default function TemplateEditorPage() {
   const { id } = useParams();
@@ -42,8 +61,21 @@ export default function TemplateEditorPage() {
   });
   const [activeTab, setActiveTab] = useState("design");
   const [selectedField, setSelectedField] = useState(null);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [pageError, setPageError] = useState(null);
   const backgroundPolicy = UPLOAD_LIMITS.backgroundImage;
+
+  const previewCandidates = useMemo(
+    () => getTemplatePreviewCandidates(template),
+    [
+      template.backgroundImage,
+      template.pdfFile,
+      template.fileType,
+      template.templateMimeType,
+    ],
+  );
+
+  const activePreviewUrl = previewCandidates[previewIndex] || "";
 
   const { data: fetchedTemplate, isLoading } = useQuery({
     queryKey: ["template", id],
@@ -67,6 +99,10 @@ export default function TemplateEditorPage() {
       });
     }
   }, [fetchedTemplate]);
+
+  useEffect(() => {
+    setPreviewIndex(0);
+  }, [previewCandidates.join("|")]);
 
   const saveMutation = useMutation({
     mutationFn: (tpl) => {
@@ -447,11 +483,19 @@ export default function TemplateEditorPage() {
                 style={{ backgroundColor: template.backgroundColor }}
               >
                 <input {...getInputProps()} />
-                {template.backgroundImage ? (
+                {activePreviewUrl ? (
                   <img
-                    src={getUploadUrl(template.backgroundImage)}
+                    src={activePreviewUrl}
                     alt="Background"
                     className="w-full h-full object-contain"
+                    onError={() => {
+                      setPreviewIndex((current) => {
+                        if (current < previewCandidates.length - 1) {
+                          return current + 1;
+                        }
+                        return previewCandidates.length;
+                      });
+                    }}
                   />
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">

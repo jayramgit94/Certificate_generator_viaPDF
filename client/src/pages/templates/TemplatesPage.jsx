@@ -8,7 +8,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import Badge from "../../components/ui/Badge";
@@ -26,6 +26,63 @@ import {
   validateUploadFile,
 } from "../../lib/uploadLimits";
 import { formatDate, truncate } from "../../lib/utils";
+
+const isImageTemplate = (tpl) =>
+  tpl?.fileType === "image" ||
+  (typeof tpl?.templateMimeType === "string" &&
+    tpl.templateMimeType.startsWith("image/"));
+
+const getTemplateImageCandidates = (tpl) => {
+  const candidates = [];
+
+  if (tpl?.backgroundImage) {
+    candidates.push(getUploadUrl(tpl.backgroundImage));
+  }
+
+  if (isImageTemplate(tpl) && tpl?.pdfFile) {
+    candidates.push(getUploadUrl(tpl.pdfFile));
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+};
+
+function TemplatePreviewImage({ template }) {
+  const candidates = useMemo(
+    () => getTemplateImageCandidates(template),
+    [
+      template?.backgroundImage,
+      template?.pdfFile,
+      template?.fileType,
+      template?.templateMimeType,
+    ],
+  );
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const activePreviewUrl = candidates[previewIndex] || "";
+
+  useEffect(() => {
+    setPreviewIndex(0);
+  }, [template?._id, candidates.join("|")]);
+
+  if (!activePreviewUrl) {
+    return <FileImage className="w-12 h-12 text-gray-300" />;
+  }
+
+  return (
+    <img
+      src={activePreviewUrl}
+      alt={template?.name || "Template"}
+      className="w-full h-full object-cover"
+      onError={() => {
+        setPreviewIndex((current) => {
+          if (current < candidates.length - 1) {
+            return current + 1;
+          }
+          return candidates.length;
+        });
+      }}
+    />
+  );
+}
 
 export default function TemplatesPage() {
   const queryClient = useQueryClient();
@@ -174,15 +231,7 @@ export default function TemplatesPage() {
               >
                 {/* Preview */}
                 <div className="aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 relative flex items-center justify-center">
-                  {t.backgroundImage ? (
-                    <img
-                      src={getUploadUrl(t.backgroundImage)}
-                      alt={t.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <FileImage className="w-12 h-12 text-gray-300" />
-                  )}
+                  <TemplatePreviewImage template={t} />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div className="flex gap-2">
                       <Link

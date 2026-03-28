@@ -118,6 +118,8 @@ class TemplateService {
       templateMimeType: templateFile.mimetype || this._guessMimeType(ext),
       pdfPages,
       fileType,
+      backgroundImage: isImage ? templateFileUrl : null,
+      backgroundImageFileId: isImage ? templateFileId : null,
     });
 
     await ActivityLog.create({
@@ -255,6 +257,14 @@ class TemplateService {
       templateFileName: duplicateFilename,
       templateMimeType:
         originalContentType || original.templateMimeType || null,
+      backgroundImage:
+        original.fileType === "image"
+          ? newTemplateFileUrl
+          : duplicateData.backgroundImage || null,
+      backgroundImageFileId:
+        original.fileType === "image"
+          ? newTemplateFileId
+          : duplicateData.backgroundImageFileId || null,
       isDefault: false,
       status: "draft",
     });

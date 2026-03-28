@@ -100,6 +100,13 @@ class GridFSService {
       stream: bucket.openDownloadStream(objectId),
     };
   }
+
+  async deleteFile(fileId) {
+    const bucket = this._getBucket();
+    const objectId = this._toObjectId(fileId);
+    await bucket.delete(objectId);
+    return true;
+  }
 }
 
 module.exports = new GridFSService();

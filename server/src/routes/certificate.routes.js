@@ -36,5 +36,6 @@ router.put(
   validate(revokeCertificateSchema),
   certificateController.revoke,
 );
+router.delete("/:id", certificateController.deleteById);
 
 module.exports = router;

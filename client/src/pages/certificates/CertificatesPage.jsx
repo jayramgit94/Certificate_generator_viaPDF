@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Award, Download, Play, Search, XCircle } from "lucide-react";
+import { Award, Download, Play, Search, Trash2, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import Alert from "../../components/ui/Alert";
@@ -28,6 +28,7 @@ export default function CertificatesPage() {
   const [pageError, setPageError] = useState(null);
   const [downloadTargetId, setDownloadTargetId] = useState(null);
   const [revokeTargetId, setRevokeTargetId] = useState(null);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["certificates", page, search, statusFilter],
@@ -161,6 +162,35 @@ export default function CertificatesPage() {
       setRevokeTargetId(null);
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`/certificates/${id}`),
+    onMutate: (id) => {
+      setDeleteTargetId(id);
+      setPageError(null);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["certificates"] });
+      setPageError(null);
+      toast.success("Certificate deleted");
+    },
+    onError: (err) => {
+      const errorInfo = getApiErrorInfo(err, "Failed to delete certificate");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
+    },
+    onSettled: () => {
+      setDeleteTargetId(null);
+    },
+  });
+
+  const handleDeleteCert = (cert) => {
+    const shouldDelete = window.confirm(
+      `Delete certificate ${cert.certificateId} for ${cert.recipientName}? This cannot be undone.`,
+    );
+    if (!shouldDelete) return;
+    deleteMutation.mutate(cert._id);
+  };
 
   if (isLoading) return <PageLoader />;
 
@@ -336,6 +366,18 @@ export default function CertificatesPage() {
                               )}
                             </button>
                           )}
+                          <button
+                            onClick={() => handleDeleteCert(cert)}
+                            disabled={deleteTargetId === cert._id}
+                            className="p-1.5 text-gray-400 hover:text-danger-600 rounded-lg hover:bg-danger-50 transition-colors"
+                            title="Delete"
+                          >
+                            {deleteTargetId === cert._id ? (
+                              <Spinner size="sm" className="text-danger-600" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -405,6 +447,18 @@ export default function CertificatesPage() {
                       {revokeTargetId === cert._id ? "Revoking..." : "Revoke"}
                     </button>
                   )}
+                  <button
+                    onClick={() => handleDeleteCert(cert)}
+                    disabled={deleteTargetId === cert._id}
+                    className="flex items-center gap-1.5 text-xs font-medium text-danger-700 bg-danger-100 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                  >
+                    {deleteTargetId === cert._id ? (
+                      <Spinner size="sm" className="text-danger-700" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    {deleteTargetId === cert._id ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
               </Card>
             ))}

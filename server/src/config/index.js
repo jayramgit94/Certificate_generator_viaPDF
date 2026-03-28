@@ -52,11 +52,11 @@ const config = {
   },
 
   email: {
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: process.env.SMTP_SECURE === "true",
-    user: process.env.SMTP_USER || "",
-    pass: process.env.SMTP_PASS || "",
+    host: process.env.SMTP_HOST || process.env.EMAIL_HOST || "smtp.gmail.com",
+    port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT, 10) || 587,
+    secure: (process.env.SMTP_SECURE || process.env.EMAIL_SECURE) === "true",
+    user: process.env.SMTP_USER || process.env.EMAIL_USER || "",
+    pass: process.env.SMTP_PASS || process.env.EMAIL_PASS || "",
     fromName: process.env.EMAIL_FROM_NAME || "CertiGen",
     fromAddress: process.env.EMAIL_FROM_ADDRESS || "noreply@certigen.com",
   },

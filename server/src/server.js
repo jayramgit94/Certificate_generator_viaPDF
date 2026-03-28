@@ -2,6 +2,7 @@ require("dotenv").config();
 const app = require("./app");
 const config = require("./config");
 const connectDB = require("./config/db");
+const { verifyEmailConnection } = require("./config/email");
 const logger = require("./utils/logger");
 
 const PORT = config.port;
@@ -12,6 +13,19 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
     logger.info("MongoDB connected");
+
+    if (config.email.user && config.email.pass) {
+      const smtpReady = await verifyEmailConnection();
+      if (!smtpReady) {
+        logger.warn(
+          "SMTP verification failed. Email sending may fail until SMTP settings are corrected.",
+        );
+      }
+    } else {
+      logger.warn(
+        "SMTP credentials are missing. Configure SMTP_USER/SMTP_PASS (or EMAIL_USER/EMAIL_PASS).",
+      );
+    }
 
     // Start Express
     const server = app.listen(PORT, () => {

@@ -48,13 +48,14 @@ const generateBatch = asyncHandler(async (req, res) => {
  * @route   GET /api/certificates
  */
 const list = asyncHandler(async (req, res) => {
-  const { page, limit, status, emailStatus, search } = req.query;
+  const { page, limit, status, emailStatus, search, recipientBatch } = req.query;
   const result = await certificateService.list(req.user._id, {
     page: parseInt(page) || 1,
     limit: parseInt(limit) || 20,
     status,
     emailStatus,
     search,
+    recipientBatch,
   });
 
   res.json({ success: true, data: result });
@@ -110,6 +111,20 @@ const revoke = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Delete a certificate
+ * @route   DELETE /api/certificates/:id
+ */
+const deleteById = asyncHandler(async (req, res) => {
+  const result = await certificateService.delete(req.params.id, req.user._id);
+
+  res.json({
+    success: true,
+    message: "Certificate deleted",
+    data: result,
+  });
+});
+
+/**
  * @desc    Public certificate verification
  * @route   GET /api/verify/:certificateId
  */
@@ -129,5 +144,6 @@ module.exports = {
   getById,
   download,
   revoke,
+  deleteById,
   verify,
 };

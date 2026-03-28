@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   CheckCircle,
+  Download,
   Edit2,
   Eye,
   FileSpreadsheet,
@@ -29,7 +30,7 @@ import {
   UPLOAD_LIMITS,
   validateUploadFile,
 } from "../../lib/uploadLimits";
-import { formatDate, formatNumber } from "../../lib/utils";
+import { downloadBlob, formatDate, formatNumber } from "../../lib/utils";
 
 export default function RecipientsPage() {
   const queryClient = useQueryClient();
@@ -42,18 +43,81 @@ export default function RecipientsPage() {
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
   const [editForm, setEditForm] = useState({ name: "", email: "" });
+  const [batchCertificates, setBatchCertificates] = useState([]);
+  const [loadingCertificates, setLoadingCertificates] = useState(false);
+  const [downloadTargetCertId, setDownloadTargetCertId] = useState(null);
   const recipientsPolicy = UPLOAD_LIMITS.recipients;
 
   const fetchAndViewBatch = async (batch) => {
     setViewBatchLoading(true);
+    setLoadingCertificates(true);
     try {
-      const res = await api.get(`/recipients/${batch._id}`);
-      setViewBatch(res.data.data);
+      const [batchRes, certRes] = await Promise.all([
+        api.get(`/recipients/${batch._id}`),
+        api.get("/certificates", {
+          params: {
+            page: 1,
+            limit: 500,
+            recipientBatch: batch._id,
+          },
+        }),
+      ]);
+
+      setViewBatch(batchRes.data.data);
+      setBatchCertificates(certRes.data.data?.certificates || []);
     } catch {
       // Fallback to list data (records may be empty)
       setViewBatch(batch);
+      setBatchCertificates([]);
     } finally {
       setViewBatchLoading(false);
+      setLoadingCertificates(false);
+    }
+  };
+
+  const findCertificateForRecord = (record) => {
+    if (!record) return null;
+
+    const email = String(record.email || "").trim().toLowerCase();
+    const name = String(record.name || "").trim().toLowerCase();
+
+    const exact = batchCertificates.find((cert) => {
+      const certEmail = String(cert.recipientEmail || "").trim().toLowerCase();
+      const certName = String(cert.recipientName || "").trim().toLowerCase();
+      return certEmail === email && certName === name;
+    });
+
+    if (exact) return exact;
+
+    return batchCertificates.find((cert) => {
+      const certEmail = String(cert.recipientEmail || "").trim().toLowerCase();
+      return certEmail === email;
+    });
+  };
+
+  const downloadCertificateForRecord = async (record) => {
+    const certificate = findCertificateForRecord(record);
+
+    if (!certificate?._id) {
+      toast.error("No generated certificate found for this recipient yet");
+      return;
+    }
+
+    setDownloadTargetCertId(certificate._id);
+    try {
+      const response = await api.get(`/certificates/${certificate._id}/download`, {
+        responseType: "blob",
+      });
+      downloadBlob(response.data, `${certificate.certificateId || "certificate"}.pdf`);
+      toast.success("Certificate downloaded");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          "Failed to download certificate",
+      );
+    } finally {
+      setDownloadTargetCertId(null);
     }
   };
 
@@ -393,12 +457,18 @@ export default function RecipientsPage() {
       {/* View Batch Modal */}
       <Modal
         isOpen={!!viewBatch}
-        onClose={() => setViewBatch(null)}
+        onClose={() => {
+          setViewBatch(null);
+          setBatchCertificates([]);
+        }}
         title={`Batch: ${viewBatch?.batchName || "Details"}`}
         size="lg"
       >
         {viewBatch && (
           <div className="space-y-4">
+            {loadingCertificates && (
+              <p className="text-xs text-gray-500">Loading generated certificates...</p>
+            )}
             {(viewBatch.importInsights?.warningCount || 0) > 0 && (
               <div className="rounded-lg border border-warning-200 bg-warning-50 p-3">
                 <p className="text-sm font-medium text-warning-800">
@@ -533,13 +603,27 @@ export default function RecipientsPage() {
                             )}
                           </td>
                           <td className="py-2.5 px-3">
-                            <button
-                              onClick={() => startEditing(rec)}
-                              className="p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => startEditing(rec)}
+                                className="p-1 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+                                title="Edit"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => downloadCertificateForRecord(rec)}
+                                disabled={downloadTargetCertId === findCertificateForRecord(rec)?._id}
+                                className="p-1 text-gray-400 hover:text-success-600 hover:bg-success-50 rounded transition-colors"
+                                title="Download Certificate"
+                              >
+                                {downloadTargetCertId === findCertificateForRecord(rec)?._id ? (
+                                  <Spinner size="sm" className="text-success-600" />
+                                ) : (
+                                  <Download className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
                           </td>
                         </>
                       )}

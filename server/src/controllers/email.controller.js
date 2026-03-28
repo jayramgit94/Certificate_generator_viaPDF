@@ -14,6 +14,7 @@ const sendSingle = asyncHandler(async (req, res) => {
       emailTemplateId: req.body.emailTemplateId,
       subject: req.body.subject,
       body: req.body.body,
+      overrideRecipientEmail: req.body.overrideRecipientEmail,
     },
   );
 
@@ -38,6 +39,7 @@ const sendBatch = asyncHandler(async (req, res) => {
       body: req.body.body,
       batchSize: req.body.batchSize,
       delayMs: req.body.delayMs,
+      overrideRecipientEmail: req.body.overrideRecipientEmail,
     },
   );
 
@@ -84,7 +86,8 @@ const retryAll = asyncHandler(async (req, res) => {
  * @route   POST /api/emails/send-by-batch
  */
 const sendByBatch = asyncHandler(async (req, res) => {
-  const { recipientBatchId, emailTemplateId, subject } = req.body;
+  const { recipientBatchId, emailTemplateId, subject, overrideRecipientEmail } =
+    req.body;
 
   // Find all certificates for this batch
   const certificates = await Certificate.find({
@@ -108,6 +111,7 @@ const sendByBatch = asyncHandler(async (req, res) => {
   const result = await emailService.sendBatch(req.user._id, certificateIds, {
     emailTemplateId,
     subject,
+    overrideRecipientEmail,
   });
 
   res.json({

@@ -439,11 +439,12 @@ class CertificateService {
    */
   async list(
     adminId,
-    { page = 1, limit = 20, status, emailStatus, search } = {},
+    { page = 1, limit = 20, status, emailStatus, search, recipientBatch } = {},
   ) {
     const filter = { admin: adminId };
     if (status) filter.status = status;
     if (emailStatus) filter.emailStatus = emailStatus;
+    if (recipientBatch) filter.recipientBatch = recipientBatch;
     if (search) {
       filter.$or = [
         { recipientName: { $regex: search, $options: "i" } },
@@ -576,6 +577,59 @@ class CertificateService {
     }
 
     return null;
+  }
+
+  /**
+   * Delete a certificate and its generated PDF asset
+   */
+  async delete(certificateId, adminId) {
+    const certificate = await Certificate.findOne({
+      _id: certificateId,
+      admin: adminId,
+    });
+
+    if (!certificate) {
+      throw AppError.notFound("Certificate");
+    }
+
+    const fileIdFromPath = gridfsService.extractFileIdFromUrl(certificate.pdfPath);
+    const fileId = certificate.pdfFileId || fileIdFromPath;
+
+    if (fileId) {
+      try {
+        await gridfsService.deleteFile(fileId);
+      } catch (error) {
+        logger.warn(
+          `Unable to delete certificate file ${fileId} for ${certificate.certificateId}: ${error.message}`,
+        );
+      }
+    }
+
+    if (certificate.pdfPath && fs.existsSync(certificate.pdfPath)) {
+      try {
+        fs.unlinkSync(certificate.pdfPath);
+      } catch (error) {
+        logger.warn(
+          `Unable to delete certificate PDF path ${certificate.pdfPath}: ${error.message}`,
+        );
+      }
+    }
+
+    await certificate.deleteOne();
+
+    await ActivityLog.create({
+      admin: adminId,
+      action: "delete_certificate",
+      resource: "certificate",
+      resourceId: certificate._id,
+      details: `Deleted certificate ${certificate.certificateId}`,
+    });
+
+    return {
+      deleted: true,
+      certificateId: certificate.certificateId,
+      id: certificate._id,
+    };
   }
 
   /**

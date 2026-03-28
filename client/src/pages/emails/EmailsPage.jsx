@@ -35,6 +35,7 @@ export default function EmailsPage() {
     recipientBatchId: "",
     emailTemplateId: "",
     subject: "Your Certificate is Ready!",
+    overrideRecipientEmail: "",
   });
   const [pageError, setPageError] = useState(null);
   const [retryTargetId, setRetryTargetId] = useState(null);
@@ -96,7 +97,13 @@ export default function EmailsPage() {
   );
 
   const sendMutation = useMutation({
-    mutationFn: (data) => api.post("/emails/send-by-batch", data),
+    mutationFn: (data) => {
+      const overrideEmail = data.overrideRecipientEmail?.trim();
+      return api.post("/emails/send-by-batch", {
+        ...data,
+        overrideRecipientEmail: overrideEmail || undefined,
+      });
+    },
     onMutate: () => {
       setPageError(null);
     },
@@ -325,7 +332,16 @@ export default function EmailsPage() {
                         </p>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {log.subject}
+                        <p className="text-sm text-gray-700">{log.subject}</p>
+                        {(log.status === "failed" || log.status === "bounced") &&
+                          log.error && (
+                            <p
+                              className="mt-1 text-xs text-danger-600 max-w-xs truncate"
+                              title={log.error}
+                            >
+                              Reason: {log.error}
+                            </p>
+                          )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 text-center">
                         {log.attempt || 1}
@@ -372,6 +388,12 @@ export default function EmailsPage() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-2 truncate">{log.subject}</p>
+                {(log.status === "failed" || log.status === "bounced") &&
+                  log.error && (
+                    <p className="text-xs text-danger-600 mt-1" title={log.error}>
+                      Reason: {log.error}
+                    </p>
+                  )}
                 <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                   <span className="text-xs text-gray-400">{formatDate(log.sentAt || log.createdAt)}</span>
                   {(log.status === "failed" || log.status === "bounced") && (
@@ -441,6 +463,18 @@ export default function EmailsPage() {
               })),
             ]}
           />
+          <Input
+            label="Alternative Recipient Email (Optional)"
+            value={sendForm.overrideRecipientEmail}
+            onChange={(e) =>
+              setSendForm({ ...sendForm, overrideRecipientEmail: e.target.value })
+            }
+            type="email"
+            placeholder="example@yourdomain.com"
+          />
+          <p className="text-xs text-gray-500 -mt-2">
+            If set, all certificates in this batch will be sent to this email address.
+          </p>
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
             <Button
               variant="secondary"

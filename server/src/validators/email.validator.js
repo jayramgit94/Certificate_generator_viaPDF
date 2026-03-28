@@ -7,6 +7,7 @@ const sendEmailSchema = z.object({
   emailTemplateId: z.string().optional(),
   subject: z.string().optional(),
   body: z.string().optional(),
+  overrideRecipientEmail: z.string().email().optional(),
 });
 
 const sendBatchSchema = z.object({
@@ -16,6 +17,7 @@ const sendBatchSchema = z.object({
   emailTemplateId: z.string().optional(),
   batchSize: z.number().int().min(1).max(50).optional().default(10),
   delayMs: z.number().int().min(0).max(60000).optional().default(2000),
+  overrideRecipientEmail: z.string().email().optional(),
 });
 
 const sendByBatchSchema = z.object({
@@ -24,6 +26,7 @@ const sendByBatchSchema = z.object({
     .min(1),
   emailTemplateId: z.string().optional(),
   subject: z.string().optional(),
+  overrideRecipientEmail: z.string().email().optional(),
 });
 
 const retryEmailsSchema = z.object({

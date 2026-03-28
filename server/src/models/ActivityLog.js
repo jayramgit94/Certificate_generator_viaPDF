@@ -23,6 +23,7 @@ const activityLogSchema = new mongoose.Schema(
         "send_emails",
         "retry_email",
         "revoke_certificate",
+        "delete_certificate",
         "update_settings",
         "export_report",
         "create_email_template",

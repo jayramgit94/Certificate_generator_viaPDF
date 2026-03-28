@@ -25,6 +25,10 @@ class EmailService {
       throw AppError.notFound("Certificate");
     }
 
+    const destinationEmail =
+      options.overrideRecipientEmail?.trim().toLowerCase() ||
+      certificate.recipientEmail;
+
     const attachment = await this._buildCertificateAttachment(certificate);
 
     // Get email template
@@ -59,7 +63,7 @@ class EmailService {
     const emailLog = await EmailLog.create({
       admin: adminId,
       certificate: certificate._id,
-      recipientEmail: certificate.recipientEmail,
+      recipientEmail: destinationEmail,
       recipientName: certificate.recipientName,
       subject,
       body,
@@ -70,7 +74,7 @@ class EmailService {
     // Send email
     try {
       const result = await this._sendEmail({
-        to: certificate.recipientEmail,
+        to: destinationEmail,
         toName: certificate.recipientName,
         subject,
         html: body,
@@ -91,7 +95,7 @@ class EmailService {
       await certificate.save();
 
       logger.info(
-        `Email sent to ${certificate.recipientEmail} for cert ${certificate.certificateId}`,
+        `Email sent to ${destinationEmail} for cert ${certificate.certificateId}`,
       );
 
       return { emailLog, success: true };
@@ -117,7 +121,7 @@ class EmailService {
       await certificate.save();
 
       logger.error(
-        `Email failed for ${certificate.recipientEmail}: ${errorMsg}`,
+        `Email failed for ${destinationEmail}: ${errorMsg}`,
       );
 
       return { emailLog, success: false, error: errorMsg };
@@ -149,6 +153,7 @@ class EmailService {
           emailTemplateId: options.emailTemplateId,
           subject: options.subject,
           body: options.body,
+          overrideRecipientEmail: options.overrideRecipientEmail,
         });
 
         if (result.success) {
@@ -489,11 +494,24 @@ class EmailService {
    */
   _isSmtpConfigured() {
     return (
+      config.email.host &&
+      config.email.port &&
       config.email.user &&
       config.email.pass &&
       config.email.user !== "your-gmail@gmail.com" &&
       config.email.pass !== "your-16-char-app-password"
     );
+  }
+
+  _resolveFromAddress() {
+    const configuredFrom = (config.email.fromAddress || "").trim();
+
+    // When not explicitly configured, fall back to authenticated SMTP user.
+    if (!configuredFrom || configuredFrom === "noreply@certigen.com") {
+      return config.email.user || configuredFrom;
+    }
+
+    return configuredFrom;
   }
 
   /**
@@ -502,6 +520,12 @@ class EmailService {
   async _sendEmail({ to, toName, subject, html, attachments = [] }) {
     // Simulation mode when SMTP credentials are not configured
     if (!this._isSmtpConfigured()) {
+      if (config.env === "production") {
+        throw AppError.badRequest(
+          "SMTP is not configured on the server. Set SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, and EMAIL_FROM_ADDRESS.",
+        );
+      }
+
       logger.warn(
         `[SIMULATION MODE] SMTP not configured — simulating email to ${to} | Subject: "${subject}"`,
       );
@@ -518,9 +542,10 @@ class EmailService {
     }
 
     const transporter = getEmailTransporter();
+    const fromAddress = this._resolveFromAddress();
 
     const mailOptions = {
-      from: `"${config.email.fromName}" <${config.email.fromAddress}>`,
+      from: `"${config.email.fromName}" <${fromAddress}>`,
       to: toName ? `"${toName}" <${to}>` : to,
       subject,
       html,

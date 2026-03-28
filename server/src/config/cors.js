@@ -1,30 +1,41 @@
 const config = require("./index");
 
+const normalizeOrigin = (value) => {
+  if (!value || typeof value !== "string") return null;
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value.replace(/\/$/, "");
+  }
+};
+
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       config.cors.clientUrl,
       "http://localhost:5173",
       "http://localhost:3000",
-    ];
+    ]
+      .map((o) => normalizeOrigin(o))
+      .filter(Boolean);
 
     // Also allow any extra origins from CORS_ORIGINS env var (comma-separated)
     if (process.env.CORS_ORIGINS) {
       process.env.CORS_ORIGINS.split(",")
         .map((o) => o.trim())
+        .map((o) => normalizeOrigin(o))
+        .filter(Boolean)
         .forEach((o) => allowedOrigins.push(o));
     }
 
-    // Allow requests with no origin (mobile apps, curl, etc.) in development
-    if (!origin && config.env === "development") {
+    // Browsers often send no Origin for direct asset loads (<img>, <object>, etc.).
+    if (!origin) {
       return callback(null, true);
     }
 
-    if (!origin) {
-      return callback(new Error("Origin header is required"));
-    }
+    const normalizedOrigin = normalizeOrigin(origin);
 
-    if (allowedOrigins.includes(origin)) {
+    if (normalizedOrigin && allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
       callback(new Error(`Origin ${origin} not allowed by CORS`));

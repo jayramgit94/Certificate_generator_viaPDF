@@ -30,6 +30,11 @@ const isImageTemplate = (tpl) =>
   (typeof tpl?.templateMimeType === "string" &&
     tpl.templateMimeType.startsWith("image/"));
 
+const isPdfTemplate = (tpl) =>
+  tpl?.fileType === "pdf" ||
+  String(tpl?.templateMimeType || "").toLowerCase().includes("pdf") ||
+  /\.pdf(\?.*)?$/i.test(String(tpl?.pdfFile || ""));
+
 const getTemplatePreviewCandidates = (tpl) => {
   const candidates = [];
 
@@ -56,6 +61,20 @@ const getTemplatePreviewCandidates = (tpl) => {
   return [...new Set(candidates.filter(Boolean))];
 };
 
+const getTemplatePdfPreviewCandidates = (tpl) => {
+  const candidates = [];
+
+  if (tpl?.pdfFile) {
+    candidates.push(getUploadUrl(tpl.pdfFile));
+  }
+
+  if (tpl?.templateFileId) {
+    candidates.push(getUploadUrl(`/api/files/${tpl.templateFileId}`));
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+};
+
 export default function TemplateEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -74,6 +93,7 @@ export default function TemplateEditorPage() {
   const [activeTab, setActiveTab] = useState("design");
   const [selectedField, setSelectedField] = useState(null);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [pdfPreviewIndex, setPdfPreviewIndex] = useState(0);
   const [pageError, setPageError] = useState(null);
   const backgroundPolicy = UPLOAD_LIMITS.backgroundImage;
 
@@ -87,7 +107,15 @@ export default function TemplateEditorPage() {
     ],
   );
 
+  const pdfPreviewCandidates = useMemo(
+    () => getTemplatePdfPreviewCandidates(template),
+    [template.pdfFile, template.templateFileId],
+  );
+
   const activePreviewUrl = previewCandidates[previewIndex] || "";
+  const activePdfPreviewUrl = pdfPreviewCandidates[pdfPreviewIndex] || "";
+  const shouldShowPdfPreview =
+    !activePreviewUrl && isPdfTemplate(template) && !!activePdfPreviewUrl;
 
   const { data: fetchedTemplate, isLoading } = useQuery({
     queryKey: ["template", id],
@@ -115,6 +143,10 @@ export default function TemplateEditorPage() {
   useEffect(() => {
     setPreviewIndex(0);
   }, [previewCandidates.join("|")]);
+
+  useEffect(() => {
+    setPdfPreviewIndex(0);
+  }, [pdfPreviewCandidates.join("|")]);
 
   const saveMutation = useMutation({
     mutationFn: (tpl) => {
@@ -509,6 +541,27 @@ export default function TemplateEditorPage() {
                       });
                     }}
                   />
+                ) : shouldShowPdfPreview ? (
+                  <object
+                    data={activePdfPreviewUrl}
+                    type="application/pdf"
+                    className="w-full h-full"
+                    aria-label="Template PDF preview"
+                  >
+                    <iframe
+                      title="Template PDF preview"
+                      src={activePdfPreviewUrl}
+                      className="w-full h-full border-0"
+                      onError={() => {
+                        setPdfPreviewIndex((current) => {
+                          if (current < pdfPreviewCandidates.length - 1) {
+                            return current + 1;
+                          }
+                          return pdfPreviewCandidates.length;
+                        });
+                      }}
+                    />
+                  </object>
                 ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
                     <Upload className="w-10 h-10 mb-2" />

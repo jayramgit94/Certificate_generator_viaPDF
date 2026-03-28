@@ -32,6 +32,11 @@ const isImageTemplate = (tpl) =>
   (typeof tpl?.templateMimeType === "string" &&
     tpl.templateMimeType.startsWith("image/"));
 
+const isPdfTemplate = (tpl) =>
+  tpl?.fileType === "pdf" ||
+  String(tpl?.templateMimeType || "").toLowerCase().includes("pdf") ||
+  /\.pdf(\?.*)?$/i.test(String(tpl?.pdfFile || ""));
+
 const getTemplateImageCandidates = (tpl) => {
   const candidates = [];
 
@@ -58,6 +63,20 @@ const getTemplateImageCandidates = (tpl) => {
   return [...new Set(candidates.filter(Boolean))];
 };
 
+const getTemplatePdfCandidates = (tpl) => {
+  const candidates = [];
+
+  if (tpl?.pdfFile) {
+    candidates.push(getUploadUrl(tpl.pdfFile));
+  }
+
+  if (tpl?.templateFileId) {
+    candidates.push(getUploadUrl(`/api/files/${tpl.templateFileId}`));
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+};
+
 function TemplatePreviewImage({ template }) {
   const candidates = useMemo(
     () => getTemplateImageCandidates(template),
@@ -68,15 +87,52 @@ function TemplatePreviewImage({ template }) {
       template?.templateMimeType,
     ],
   );
+  const pdfCandidates = useMemo(
+    () => getTemplatePdfCandidates(template),
+    [template?.pdfFile, template?.templateFileId],
+  );
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [pdfPreviewIndex, setPdfPreviewIndex] = useState(0);
   const activePreviewUrl = candidates[previewIndex] || "";
+  const activePdfPreviewUrl = pdfCandidates[pdfPreviewIndex] || "";
+  const shouldShowPdfPreview =
+    !activePreviewUrl && isPdfTemplate(template) && !!activePdfPreviewUrl;
 
   useEffect(() => {
     setPreviewIndex(0);
   }, [template?._id, candidates.join("|")]);
 
-  if (!activePreviewUrl) {
+  useEffect(() => {
+    setPdfPreviewIndex(0);
+  }, [template?._id, pdfCandidates.join("|")]);
+
+  if (!activePreviewUrl && !shouldShowPdfPreview) {
     return <FileImage className="w-12 h-12 text-gray-300" />;
+  }
+
+  if (shouldShowPdfPreview) {
+    return (
+      <object
+        data={activePdfPreviewUrl}
+        type="application/pdf"
+        className="w-full h-full"
+        aria-label={`${template?.name || "Template"} PDF preview`}
+      >
+        <iframe
+          title={`${template?.name || "Template"} PDF preview`}
+          src={activePdfPreviewUrl}
+          className="w-full h-full border-0"
+          onError={() => {
+            setPdfPreviewIndex((current) => {
+              if (current < pdfCandidates.length - 1) {
+                return current + 1;
+              }
+              return pdfCandidates.length;
+            });
+          }}
+        />
+      </object>
+    );
   }
 
   return (

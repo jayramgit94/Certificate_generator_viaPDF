@@ -6,11 +6,20 @@ const ActivityLog = require("../models/ActivityLog");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 
+const DASHBOARD_CACHE_TTL_MS = 30 * 1000;
+const dashboardCache = new Map();
+
 class AnalyticsService {
   /**
    * Get dashboard statistics
    */
   async getDashboardStats(adminId) {
+    const cacheKey = adminId.toString();
+    const cached = dashboardCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.payload;
+    }
+
     const [
       totalCertificates,
       generatedCertificates,
@@ -101,7 +110,7 @@ class AnalyticsService {
       };
     });
 
-    return {
+    const payload = {
       certificates: {
         total: totalCertificates,
         generated: generatedCertificates,
@@ -147,6 +156,13 @@ class AnalyticsService {
       },
       recentActivity,
     };
+
+    dashboardCache.set(cacheKey, {
+      payload,
+      expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+    });
+
+    return payload;
   }
 
   /**

@@ -93,6 +93,8 @@ const emailLogSchema = new mongoose.Schema(
 
 // Indexes for querying
 emailLogSchema.index({ "metadata.batchId": 1 });
+emailLogSchema.index({ admin: 1, status: 1, createdAt: -1 });
+emailLogSchema.index({ admin: 1, createdAt: -1 });
 emailLogSchema.index({ createdAt: -1 });
 
 const EmailLog = mongoose.model("EmailLog", emailLogSchema);

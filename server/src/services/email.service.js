@@ -367,6 +367,50 @@ class EmailService {
     return log;
   }
 
+  async deleteLog(logId, adminId) {
+    const log = await EmailLog.findOneAndDelete({ _id: logId, admin: adminId });
+    if (!log) {
+      throw AppError.notFound("Email log");
+    }
+
+    await ActivityLog.create({
+      admin: adminId,
+      action: "delete_email_log",
+      resource: "emailLog",
+      resourceId: log._id,
+      details: `Deleted email log for ${log.recipientEmail}`,
+    });
+
+    return log;
+  }
+
+  async deleteLogs(adminId, { status, batchId } = {}) {
+    if (!status && !batchId) {
+      throw AppError.badRequest(
+        "Provide at least one filter (status or batchId) to delete logs",
+      );
+    }
+
+    const filter = { admin: adminId };
+    if (status) filter.status = status;
+    if (batchId) filter["metadata.batchId"] = batchId;
+
+    const result = await EmailLog.deleteMany(filter);
+
+    await ActivityLog.create({
+      admin: adminId,
+      action: "clear_email_logs",
+      details: `Cleared ${result.deletedCount || 0} email logs`,
+      metadata: {
+        status: status || null,
+        batchId: batchId || null,
+        deletedCount: result.deletedCount || 0,
+      },
+    });
+
+    return { deletedCount: result.deletedCount || 0 };
+  }
+
   // ===== Email Template CRUD =====
 
   async listEmailTemplates(adminId) {

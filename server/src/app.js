@@ -1,6 +1,7 @@
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
+const compression = require("compression");
 const fs = require("fs");
 const path = require("path");
 const corsOptions = require("./config/cors");
@@ -15,9 +16,14 @@ const config = require("./config");
 
 const app = express();
 
+// Required in hosted/proxied environments so rate limiting and client IP
+// detection work correctly behind load balancers/reverse proxies.
+app.set("trust proxy", 1);
+
 // ===== Security Middleware =====
 app.use(helmet());
 app.use(cors(corsOptions));
+app.use(compression());
 
 // ===== Body Parsing =====
 app.use(express.json({ limit: "10mb" }));

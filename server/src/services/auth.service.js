@@ -105,11 +105,9 @@ class AuthService {
     }
 
     if (!admin.refreshTokens.includes(refreshToken)) {
-      // Token reuse detected — invalidate all tokens
-      await Admin.findByIdAndUpdate(admin._id, { refreshTokens: [] });
-      throw AppError.unauthorized(
-        "Token reuse detected. All sessions invalidated.",
-      );
+      // Treat as an expired/rotated session token instead of force-logging out
+      // all devices, which can happen during concurrent refresh races.
+      throw AppError.unauthorized("Refresh token is invalid or already rotated");
     }
 
     // Generate new token pair

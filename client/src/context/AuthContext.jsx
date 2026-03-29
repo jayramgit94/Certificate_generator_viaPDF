@@ -24,18 +24,25 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const clearLocalSession = useCallback(() => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    setUser(null);
+  }, []);
+
   // Check token validity on mount
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (token && user) {
       api
-        .get("/auth/me")
+        .get("/auth/me", { timeout: 10000 })
         .then(({ data }) => {
           setUser(data.data);
           localStorage.setItem("user", JSON.stringify(data.data));
         })
         .catch(() => {
-          logout();
+          clearLocalSession();
         })
         .finally(() => setLoading(false));
     } else {
@@ -82,13 +89,10 @@ export function AuthProvider({ children }) {
     } catch {
       // Ignore logout errors
     } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      setUser(null);
+      clearLocalSession();
       navigate("/login");
     }
-  }, [navigate]);
+  }, [clearLocalSession, navigate]);
 
   const value = {
     user,

@@ -39,7 +39,12 @@ export default function LoginPage() {
     try {
       await login(form.email, form.password);
     } catch (err) {
-      setErrors({ general: err.response?.data?.message || "Login failed" });
+      setErrors({
+        general:
+          err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          "Login failed",
+      });
     } finally {
       setLoading(false);
     }

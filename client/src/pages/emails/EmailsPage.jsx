@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Search,
   Send,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -39,6 +40,8 @@ export default function EmailsPage() {
   });
   const [pageError, setPageError] = useState(null);
   const [retryTargetId, setRetryTargetId] = useState(null);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [clearFailedPending, setClearFailedPending] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["email-logs", page, search, statusFilter],
@@ -141,6 +144,64 @@ export default function EmailsPage() {
     },
   });
 
+  const deleteLogMutation = useMutation({
+    mutationFn: (id) => api.delete(`/emails/logs/${id}`),
+    onMutate: (id) => {
+      setDeleteTargetId(id);
+      setPageError(null);
+    },
+    onSuccess: ({ data }) => {
+      queryClient.invalidateQueries({ queryKey: ["email-logs"] });
+      setPageError(null);
+      toast.success(data.message || "Email log deleted");
+    },
+    onError: (err) => {
+      const errorInfo = getApiErrorInfo(err, "Failed to delete email log");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
+    },
+    onSettled: () => {
+      setDeleteTargetId(null);
+    },
+  });
+
+  const clearFailedMutation = useMutation({
+    mutationFn: () => api.delete("/emails/logs", { params: { status: "failed" } }),
+    onMutate: () => {
+      setClearFailedPending(true);
+      setPageError(null);
+    },
+    onSuccess: ({ data }) => {
+      queryClient.invalidateQueries({ queryKey: ["email-logs"] });
+      setPageError(null);
+      toast.success(data.message || "Failed logs deleted");
+    },
+    onError: (err) => {
+      const errorInfo = getApiErrorInfo(err, "Failed to clear failed logs");
+      setPageError(errorInfo);
+      toast.error(errorInfo.userMessage);
+    },
+    onSettled: () => {
+      setClearFailedPending(false);
+    },
+  });
+
+  const handleDeleteLog = (log) => {
+    const ok = window.confirm(
+      `Delete email log for ${log.recipientEmail}? This cannot be undone.`,
+    );
+    if (!ok) return;
+    deleteLogMutation.mutate(log._id);
+  };
+
+  const handleClearFailed = () => {
+    const ok = window.confirm(
+      "Delete all failed email logs? This cannot be undone.",
+    );
+    if (!ok) return;
+    clearFailedMutation.mutate();
+  };
+
   if (isLoading) return <PageLoader />;
 
   const logs = data?.logs || [];
@@ -179,6 +240,18 @@ export default function EmailsPage() {
         <Button onClick={() => setSendModal(true)}>
           <Send className="w-4 h-4" />
           Send Batch Emails
+        </Button>
+      </div>
+
+      <div className="flex items-center justify-end">
+        <Button
+          variant="secondary"
+          onClick={handleClearFailed}
+          loading={clearFailedPending}
+          loadingText="Deleting..."
+        >
+          <Trash2 className="w-4 h-4" />
+          Delete Failed Logs
         </Button>
       </div>
 
@@ -365,6 +438,18 @@ export default function EmailsPage() {
                             )}
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDeleteLog(log)}
+                          disabled={deleteTargetId === log._id}
+                          className="p-1.5 text-gray-400 hover:text-danger-600 rounded-lg hover:bg-danger-50 transition-colors"
+                          title="Delete log"
+                        >
+                          {deleteTargetId === log._id ? (
+                            <Spinner size="sm" className="text-danger-600" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -397,18 +482,32 @@ export default function EmailsPage() {
                 <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                   <span className="text-xs text-gray-400">{formatDate(log.sentAt || log.createdAt)}</span>
                   {(log.status === "failed" || log.status === "bounced") && (
-                    <button
-                      onClick={() => retryMutation.mutate(log._id)}
-                      disabled={retryTargetId === log._id}
-                      className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
-                    >
-                      {retryTargetId === log._id ? (
-                        <Spinner size="sm" className="text-primary-600" />
-                      ) : (
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      )}
-                      {retryTargetId === log._id ? "Retrying..." : "Retry"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => retryMutation.mutate(log._id)}
+                        disabled={retryTargetId === log._id}
+                        className="flex items-center gap-1.5 text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                      >
+                        {retryTargetId === log._id ? (
+                          <Spinner size="sm" className="text-primary-600" />
+                        ) : (
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        )}
+                        {retryTargetId === log._id ? "Retrying..." : "Retry"}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteLog(log)}
+                        disabled={deleteTargetId === log._id}
+                        className="flex items-center gap-1.5 text-xs font-medium text-danger-600 bg-danger-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                      >
+                        {deleteTargetId === log._id ? (
+                          <Spinner size="sm" className="text-danger-600" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                        {deleteTargetId === log._id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
                   )}
                 </div>
               </Card>

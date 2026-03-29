@@ -29,6 +29,8 @@ const activityLogSchema = new mongoose.Schema(
         "create_email_template",
         "update_email_template",
         "delete_email_template",
+        "delete_email_log",
+        "clear_email_logs",
         "change_role",
         "delete_user",
       ],

@@ -44,12 +44,7 @@ export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["dashboard-stats"],
     queryFn: () => api.get("/analytics/dashboard").then((r) => r.data.data),
-  });
-
-  const { data: activity } = useQuery({
-    queryKey: ["recent-activity"],
-    queryFn: () =>
-      api.get("/analytics/activity?limit=10").then((r) => r.data.data),
+    staleTime: 60 * 1000,
   });
 
   if (isLoading) return <PageLoader />;
@@ -305,8 +300,8 @@ export default function DashboardPage() {
             </p>
           </CardHeader>
           <div className="divide-y divide-gray-100">
-            {(activity?.logs || []).length > 0 ? (
-              activity.logs.map((log) => (
+            {(stats?.recentActivity || []).length > 0 ? (
+              stats.recentActivity.map((log) => (
                 <div
                   key={log._id}
                   className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-3.5"

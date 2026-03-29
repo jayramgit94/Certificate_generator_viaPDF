@@ -20,9 +20,9 @@ const createEmailTransporter = () => {
     maxConnections: 5,
     maxMessages: 100,
     // Timeouts
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 30000,
+    connectionTimeout: 25000,
+    greetingTimeout: 20000,
+    socketTimeout: 45000,
   });
 
   return transporter;

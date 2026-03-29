@@ -24,6 +24,7 @@ const generalLimiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts per window
+  skipSuccessfulRequests: true,
   message: {
     success: false,
     error: {

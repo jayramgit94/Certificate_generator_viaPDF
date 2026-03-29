@@ -43,7 +43,9 @@ router.post("/test", emailLimiter, emailController.testSend);
 
 // Email logs
 router.get("/logs", emailController.getLogs);
+router.delete("/logs", emailController.deleteLogs);
 router.get("/logs/:id", emailController.getLogById);
+router.delete("/logs/:id", emailController.deleteLogById);
 
 // Email templates
 router.get("/templates", emailController.listEmailTemplates);

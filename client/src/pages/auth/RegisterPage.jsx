@@ -55,7 +55,10 @@ export default function RegisterPage() {
       });
     } catch (err) {
       setErrors({
-        general: err.response?.data?.message || "Registration failed",
+        general:
+          err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          "Registration failed",
       });
     } finally {
       setLoading(false);

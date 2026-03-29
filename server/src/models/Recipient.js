@@ -117,6 +117,7 @@ const recipientSchema = new mongoose.Schema(
 
 // Index for status queries
 recipientSchema.index({ status: 1 });
+recipientSchema.index({ admin: 1, createdAt: -1 });
 
 // Compute summary before saving
 recipientSchema.pre("save", function (next) {

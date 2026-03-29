@@ -63,7 +63,7 @@ export function getUploadUrl(relativePath) {
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 30000,
+  timeout: 15000,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -235,6 +235,16 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = String(originalRequest?.url || "");
+    const isAuthRoute =
+      requestUrl.includes("/auth/login") ||
+      requestUrl.includes("/auth/register") ||
+      requestUrl.includes("/auth/refresh");
+
+    // Do not run refresh flow for auth endpoints themselves.
+    if (isAuthRoute) {
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
@@ -253,7 +263,9 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) throw new Error("No refresh token");
+        if (!refreshToken) {
+          return Promise.reject(error);
+        }
 
         const { data } = await axios.post(`${API_BASE}/auth/refresh`, {
           refreshToken,

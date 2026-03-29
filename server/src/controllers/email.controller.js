@@ -157,6 +157,33 @@ const getLogById = asyncHandler(async (req, res) => {
   res.json({ success: true, data: log });
 });
 
+/**
+ * @desc    Delete single email log
+ * @route   DELETE /api/emails/logs/:id
+ */
+const deleteLogById = asyncHandler(async (req, res) => {
+  await emailService.deleteLog(req.params.id, req.user._id);
+
+  res.json({ success: true, message: "Email log deleted" });
+});
+
+/**
+ * @desc    Delete email logs by filter
+ * @route   DELETE /api/emails/logs?status=failed&batchId=...
+ */
+const deleteLogs = asyncHandler(async (req, res) => {
+  const result = await emailService.deleteLogs(req.user._id, {
+    status: req.query.status,
+    batchId: req.query.batchId,
+  });
+
+  res.json({
+    success: true,
+    message: `Deleted ${result.deletedCount} email logs`,
+    data: result,
+  });
+});
+
 // ===== Email Template CRUD =====
 
 /**
@@ -252,6 +279,8 @@ module.exports = {
   testSend,
   getLogs,
   getLogById,
+  deleteLogById,
+  deleteLogs,
   listEmailTemplates,
   getEmailTemplate,
   createEmailTemplate,

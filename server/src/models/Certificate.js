@@ -120,6 +120,8 @@ const certificateSchema = new mongoose.Schema(
 
 // Compound indexes for common queries
 certificateSchema.index({ admin: 1, createdAt: -1 });
+certificateSchema.index({ admin: 1, status: 1 });
+certificateSchema.index({ admin: 1, emailStatus: 1 });
 certificateSchema.index({ recipientEmail: 1, createdAt: -1 });
 
 // Virtual: verification URL
